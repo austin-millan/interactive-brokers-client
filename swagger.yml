@@ -1885,8 +1885,6 @@ definitions:
         description: for example STK
       currency:
         type: string
-      companyName:
-        type: string
       category:
         type: string
       industry:
