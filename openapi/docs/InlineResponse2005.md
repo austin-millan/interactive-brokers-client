@@ -4,12 +4,9 @@
 
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
-**Amount** | [**InlineResponse2005Amount**](inline_response_200_5_amount.md) |  | [optional] 
-**Equity** | [**InlineResponse2005Equity**](inline_response_200_5_equity.md) |  | [optional] 
-**Initial** | [**InlineResponse2005Equity**](inline_response_200_5_equity.md) |  | [optional] 
-**Maintenance** | [**InlineResponse2005Equity**](inline_response_200_5_equity.md) |  | [optional] 
-**Warn** | **string** |  | [optional] 
-**Error** | **string** |  | [optional] 
+**Ledger** | [**[]InlineResponse2005Ledger**](inline_response_200_5_Ledger.md) |  | [optional] 
+**Info** | [**InlineResponse2005Info**](inline_response_200_5_Info.md) |  | [optional] 
+**Summary** | [**InlineResponse2005Summary**](inline_response_200_5_Summary.md) |  | [optional] 
 
 [[Back to Model list]](../README.md#documentation-for-models) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to README]](../README.md)
 

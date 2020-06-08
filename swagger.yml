@@ -1,63 +1,201 @@
----
-basePath: "/v1/portal"
-host: localhost:5000
-produces:
-- application/json
-schemes:
-- https
 swagger: '2.0'
 info:
-  title: Client Portal Web API
-  description: Production version of the Client Portal Web API
+  title: IBKR 3rd Party Web API
+  description: Interactive Brokers Web API for 3rd Party Companies
   version: 1.0.0
+host: www.interactivebrokers.com
+schemes:
+  - https
+basePath: /tradingapi/v1
+produces:
+  - application/json
+securityDefinitions:
+  cookieAuth:
+    type: apiKey
+    name: portal
+    in: header
+security:
+  - cookieAuth: []
 paths:
-  "/iserver/auth/status":
+  /oauth/request_token:
     post:
-      summary: Authentication Status
-      description: Current Authentication status to the Brokerage system. Market Data
-        and Trading is not possible if not authenticated, e.g. authenticated shows
-        false
-      tags:
-      - Session
+      summary: Obtain a request token
+      description: | 
+        Obtain a request token. See section 6.1 of the OAuth v1.0a specification for more information. http://oauth.net/core/1.0a/#auth_step1
+
+        Note we do not return an oauth_token_secret in the response as we are using RSA signatures rather than PLAINTEXT authentication. 
+      tags: 
+        - OAuth
+      parameters:
+        - in: body
+          name: body
+          description: OAuth Parameters
+          required: true
+          schema:
+            type: object
+            properties:
+              oauth_consumer_key:
+                type: string
+                description: The 25-character hexadecimal string that was obtained from Interactive Brokers during the OAuth consumer registration process.
+              oauth_signature_method:
+                type: string
+                description: The signature method used to sign the request. Currently only 'RSA-SHA256' is supported.
+              oauth_signature:
+                type: string
+                description: >-
+                  The signature for the request generated using the method specified in the oauth_signature_method parameter. See section 9 of the OAuth v1.0a specification for more details on signing requests.
+              oauth_timestamp:
+                type: string
+                description: >-
+                  Timestamp expressed in seconds since 1/1/1970 00:00:00 GMT. Must be a positive integer and greater than or equal to any timestamp used in previous requests.
+              oauth_nonce:
+                type: string
+                description: >-
+                  A random string uniquely generated for each request.
+              oauth_callback:
+                type: string
+                description: >-
+                  An absolute URL to which IB will redirect the user. This URL is provided by the consumer during registration. This parameter must be set to 'oob'.  
       responses:
         '200':
-          description: Authentication Status
-          schema:
-            "$ref": "#/definitions/authStatus"
-  "/iserver/reauthenticate":
+          description: OAuth token
+          schema: 
+            type: object
+            properties:
+              oauth_token:
+                type: string
+        '400':
+          description: Unsuccessfull response
+        '401':
+          description: Unsuccessfull response
+        '403':
+          description: Unsuccessfull response
+        '408':
+          description: Unsuccessfull response 
+  /oauth/access_token:
     post:
-      summary: Tries to re-authenticate to Brokerage
-      description: Provides a way to reauthenticate to the Brokerage system as long
-        as there is a valid SSO session, see /sso/validate.
-      tags:
-      - Session
+      summary: Obtain a access token
+      description: | 
+        Obtain an access token using the request token and the verification code you received after the user provided authorization. See section 6.3 of the OAuth v1.0a specification for more details. 
+      tags: 
+        - OAuth
+      parameters:
+        - in: body
+          name: body
+          description: OAuth Parameters
+          required: true
+          schema:
+            type: object
+            properties:
+              oauth_consumer_key:
+                type: string
+                description: The 25-character hexadecimal string that was obtained from Interactive Brokers during the OAuth consumer registration process.
+              oauth_token:
+                type: string
+                description: The request token obtained from IB via /request_token.
+              oauth_signature_method:
+                type: string
+                description: The signature method used to sign the request. Currently only 'RSA-SHA256' is supported.
+              oauth_signature:
+                type: string
+                description: The signature for the request generated using the method specified in the oauth_signature_method parameter. See section 9 of the OAuth v1.0a specification for more details on signing requests. 
+              oauth_timestamp:
+                type: string
+                description: Timestamp expressed in seconds since 1/1/1970 00:00:00 GMT. Must be a positive integer and greater than or equal to any timestamp used in previous requests.
+              oauth_nonce:
+                type: string
+                description: A random string uniquely generated for each request.
+              oauth_verifier:
+                type: string
+                description: The verification code received from IB after the user has granted authorization.
       responses:
         '200':
-          description: Authentication Status
+          description: Access token and token secret
+          schema: 
+            type: object
+            properties:
+              oauth_token:
+                type: string
+              oauth_token_secret:
+                type: string
+        '400':
+          description: Unsuccessfull response
+        '401':
+          description: Unsuccessfull response
+        '403':
+          description: Unsuccessfull response
+        '408':
+          description: Unsuccessfull response
+  /oauth/live_session_token:
+    post:
+      summary: Obtain a live session token
+      description: | 
+        In order to access protected IB resources, a live session token is required. This endpoint allows consumers to obtain a live session token to access these resources using an OAuth access token and the Diffie-Hellman prime and generator supplied during the registration process.
+        Note this is an additional IB-specific step, and not part of the OAuth v1.0a specification. Please refer to the "OAuth at Interactive Brokers" document for more details.  https://www.interactivebrokers.com/webtradingapi/oauth.pdf
+      tags: 
+        - OAuth
+      parameters:
+        - in: body
+          name: body
+          description: OAuth Parameters
+          required: true
           schema:
-            "$ref": "#/definitions/authStatus"
-  "/iserver/account/trades":
-    get:
-      summary: List of Trades for the selected account
-      description: Returns a list of trades for the currently selected account for
-        current day and six previous days.
-      tags:
-      - Trades
+            type: object
+            properties:
+              oauth_consumer_key:
+                type: string
+                description: The 25-character hexadecimal string that was obtained from Interactive Brokers during the OAuth consumer registration process.
+              oauth_token:
+                type: string
+                description: The request token obtained from IB via /request_token.
+              oauth_signature_method:
+                type: string
+                description: The signature method used to sign the request. Currently only 'RSA-SHA256' is supported.
+              oauth_signature:
+                type: string
+                description: The signature for the request generated using the method specified in the oauth_signature_method parameter. See section 9 of the OAuth v1.0a specification for more details on signing requests. 
+              oauth_timestamp:
+                type: string
+                description: Timestamp expressed in seconds since 1/1/1970 00:00:00 GMT. Must be a positive integer and greater than or equal to any timestamp used in previous requests.
+              oauth_nonce:
+                type: string
+                description: A random string uniquely generated for each request.
+              diffie_hellman_challenge:
+                type: string
+                description: | 
+                  Challenge value calculated using the Diffie-Hellman prime and generated provided during the registration process. See the "OAuth at Interactive Brokers" document for more details. 
       responses:
         '200':
-          description: An array of trades
-          schema:
-            type: array
-            items:
-              "$ref": "#/definitions/trade"
-  "/iserver/accounts":
+          description: DH response
+          schema: 
+            type: object
+            properties:
+              diffie_hellman_response:
+                type: string
+              live_session_token_signature:
+                type: string
+        '400':
+          description: Unsuccessfull response
+        '401':
+          description: Unsuccessfull response
+        '403':
+          description: Unsuccessfull response
+        '408':
+          description: Unsuccessfull response
+  /accounts:
     get:
       summary: Brokerage Accounts
-      description: Returns a list of accounts the user has trading access to, their
-        respective aliases and the currently selected account. Note this endpoint
-        must be called before modifying an order or querying open orders.
+      description: >-
+        Allows the caller to request a list of accounts associated with the
+        session.
       tags:
-      - Account
+        - Account & Portfolio
+      parameters:
+        - name: account
+          in: path
+          required: true
+          type: string
+          description: Account Number
       responses:
         '200':
           description: An array of accounts
@@ -69,2826 +207,1191 @@ paths:
                 items:
                   type: string
                 description: Unique account id
-              aliases:
-                type: object
-                description: Account Id and its alias
-              selectedAccount:
-                type: string
-  "/iserver/account":
-    post:
-      summary: Updates currently selected account to the provided account
-      description: If an user has multiple accounts, and user wants to get orders,
-        trades, etc. of an account other than currently selected account, then user
-        can update the currently selected account using this API and then can fetch
-        required information for the newly updated account.
-      tags:
-      - Account
-      parameters:
-      - in: body
-        name: body
-        required: true
-        description: account id
-        schema:
-          "$ref": "#/definitions/set-account"
-      responses:
-        '200':
-          description: an object containing updated account ID
-          schema:
-            type: object
-            properties:
-              set:
-                type: boolean
-              acctId:
-                type: string
-  "/iserver/account/orders":
+        '202':
+          description: Unsuccessfull response
+        '204':
+          description: Unsuccessfull response
+        '401':
+          description: Unsuccessfull response
+        '403':
+          description: Unsuccessfull response
+        '408':
+          description: Unsuccessfull response
+  '/accounts/{account}/positions':
     get:
-      summary: Live Orders
-      description: "The end-point is meant to be used in polling mode, e.g. requesting
-        every x seconds.\nThe response will contain two objects, one is notification,
-        the other is orders. \nOrders is the list of orders (cancelled, filled, submitted)
-        with activity in the current day. \nNotifications contains information about
-        execute orders as they happen, see status field.\n"
+      summary: Account Positions
+      description: 'Returns a list of positions for the indicated account. '
       tags:
-      - Order
+        - Account & Portfolio
+      parameters:
+        - name: account
+          in: path
+          required: true
+          type: string
+          description: Account Number
       responses:
         '200':
-          description: An object contains two arrays
+          description: Returns a list of positions for the indicated account
+          schema:
+            type: array
+            items:
+              type: object
+              properties:
+                Position:
+                  type: number
+                AverageCost:
+                  type: number
+                ContractId:
+                  type: number
+        '202':
+          description: Unsuccessfull response
+        '204':
+          description: Unsuccessfull response
+        '400':
+          description: Unsuccessfull response
+        '401':
+          description: Unsuccessfull response
+        '403':
+          description: Unsuccessfull response
+        '408':
+          description: Unsuccessfull response
+  '/accounts/{account}/summary':
+    get:
+      summary: Account Values Summary
+      description: >-
+        Returns a list of account and margin balances associated with the
+        account passed in the URL
+      tags:
+        - Account & Portfolio
+      parameters:
+        - name: account
+          in: path
+          required: true
+          type: string
+          description: Account Number
+      responses:
+        '200':
+          description: >
+            Returns object for account summary with multiple properties. 
+
+            A property is sufficed with -c if it provides commodity value, -s if
+            it provides security value, and -c if its UKL segment value. 
+
+            "These values correspond to the TWS Account Window:
+            https://www.interactivebrokers.com/en/software/tws/usersguidebook/realtimeactivitymonitoring/account_window.htm"
           schema:
             type: object
             properties:
-              orders:
-                type: array
-                items:
-                  "$ref": "#/definitions/order"
-              notifications:
+              Ledger:
                 type: array
                 items:
                   type: object
-                  description: contains notifications for different status of orders,
-                    the data structure is same to orders
-  "/iserver/account/{accountId}/order":
+                  properties:
+                    CashCumQty:
+                      type: number
+                    ExchangeRate:
+                      type: number
+                    NetInterest:
+                      type: number
+                    RealizedPNL:
+                      type: number
+                    FuturePNL:
+                      type: number
+                    UnrealizedPNL:
+                      type: number
+                    OptionMarketValue:
+                      type: number
+                    StockMarketValue:
+                      type: number
+                    CashBalance:
+                      type: number
+                    FutureOptionMarketValue:
+                      type: number
+                    NetDividend:
+                      type: number
+                    NetLiquidation:
+                      type: number
+                    TotalCashBalance:
+                      type: number
+                    CashBalanceFXSegment:
+                      type: number
+              Info:
+                type: object
+                properties:
+                  AccountType:
+                    type: string
+                  AccountCode:
+                    type: string
+                  AccountReady:
+                    type: string
+                  Cushion:
+                    type: string
+                  DayTradesRemaining:
+                    type: string
+                  DayTradesRemainingT:
+                    type: string
+                  DayTradesRemainingT+2:
+                    type: string
+                  DayTradesRemainingT+3:
+                    type: string
+                  DayTradesRemainingT+4:
+                    type: string
+                  HighestSeverity:
+                    type: string
+                  Leverage-S:
+                    type: string
+                  LookAheadNextChange:
+                    type: string
+                  SegmentTitle-C:
+                    type: string
+                  SegmentTitle-S:
+                    type: string
+                  TradingType-S:
+                    type: string
+                  WhatIfPMEnabled:
+                    type: string
+              Summary:
+                type: object
+                properties:
+                  AccruedCash:
+                    type: number
+                  AccruedCash-C:
+                    type: number
+                  AccruedCash-S:
+                    type: number
+                  AccruedDividend:
+                    type: number
+                  AccruedDividend-C:
+                    type: number
+                  AccruedDividend-S:
+                    type: number
+                  AvailableFunds:
+                    type: number
+                  AvailableFunds-C:
+                    type: number
+                  AvailableFunds-S:
+                    type: number
+                  Billable:
+                    type: number
+                  Billable-C:
+                    type: number
+                  Billable-S:
+                    type: number
+                  BuyingPower:
+                    type: number
+                  EquityWithLoanValue:
+                    type: number
+                  EquityWithLoanValue-C:
+                    type: number
+                  EquityWithLoanValue-S:
+                    type: number
+                  ExcessLiquidity:
+                    type: number
+                  ExcessLiquidity-C:
+                    type: number
+                  ExcessLiquidity-S:
+                    type: number
+                  FullAvailableFunds:
+                    type: number
+                  FullAvailableFunds-C:
+                    type: number
+                  FullAvailableFunds-S:
+                    type: number
+                  FullExcessLiquidity:
+                    type: number
+                  FullExcessLiquidity-C:
+                    type: number
+                  FullExcessLiquidity-S:
+                    type: number
+                  FullInitMarginReq:
+                    type: number
+                  FullInitMarginReq-C:
+                    type: number
+                  FullInitMarginReq-S:
+                    type: number
+                  FullMaintMarginReq:
+                    type: number
+                  FullMaintMarginReq-C:
+                    type: number
+                  FullMaintMarginReq-S:
+                    type: number
+                  GrossPositionValue:
+                    type: number
+                  GrossPositionValue-C:
+                    type: number
+                  GrossPositionValue-S:
+                    type: number
+                  IndianStockHaircut:
+                    type: number
+                  IndianStockHaircut-C:
+                    type: number
+                  IndianStockHaircut-S:
+                    type: number
+                  InitMarginReq:
+                    type: number
+                  InitMarginReq-C:
+                    type: number
+                  InitMarginReq-S:
+                    type: number
+                  InsuredDeposit:
+                    type: number
+                  InsuredDeposit-C:
+                    type: number
+                  InsuredDeposit-S:
+                    type: number
+                  LookAheadAvailableFunds:
+                    type: number
+                  LookAheadAvailableFunds-C:
+                    type: number
+                  LookAheadAvailableFunds-S:
+                    type: number
+                  LookAheadExcessLiquidity:
+                    type: number
+                  LookAheadExcessLiquidity-C:
+                    type: number
+                  LookAheadExcessLiquidity-S:
+                    type: number
+                  LookAheadInitMarginReq:
+                    type: number
+                  LookAheadInitMarginReq-C:
+                    type: number
+                  LookAheadInitMarginReq-S:
+                    type: number
+                  LookAheadMaintMarginReq:
+                    type: number
+                  LookAheadMaintMarginReq-C:
+                    type: number
+                  LookAheadMaintMarginReq-S:
+                    type: number
+                  MaintMarginReq:
+                    type: number
+                  MaintMarginReq-C:
+                    type: number
+                  MaintMarginReq-S:
+                    type: number
+                  NetLiquidation:
+                    type: number
+                  NetLiquidation-C:
+                    type: number
+                  NetLiquidation-S:
+                    type: number
+                  NetLiquidationUncertainty:
+                    type: number
+                  PASharesValue:
+                    type: number
+                  PASharesValue-C:
+                    type: number
+                  PASharesValue-S:
+                    type: number
+                  PostExpirationExcess:
+                    type: number
+                  PostExpirationExcess-C:
+                    type: number
+                  PostExpirationExcess-S:
+                    type: number
+                  PostExpirationMargin:
+                    type: number
+                  PostExpirationMargin-C:
+                    type: number
+                  PostExpirationMargin-S:
+                    type: number
+                  RegTEquity:
+                    type: number
+                  RegTEquity-S:
+                    type: number
+                  RegTMargin:
+                    type: number
+                  RegTMargin-S:
+                    type: number
+                  SMA:
+                    type: number
+                  SMA-S:
+                    type: number
+                  TotalCashValue:
+                    type: number
+                  TotalCashValue-C:
+                    type: number
+                  TotalCashValue-S:
+                    type: number
+        '202':
+          description: Unsuccessfull response
+        '204':
+          description: Unsuccessfull response
+        '400':
+          description: Unsuccessfull response
+        '401':
+          description: Unsuccessfull response
+        '403':
+          description: Unsuccessfull response
+        '408':
+          description: Unsuccessfull response
+  '/accounts/{account}/orders':
+    parameters:
+      - name: account
+        in: path
+        required: true
+        type: string
+        description: Account Number
+    get:
+      summary: Open Orders
+      description: Returns a list of orders for the account passed in the URL
+      tags:
+        - Orders
+      responses:
+        '200':
+          description: Returns a list of orders for the indicated account
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/orderState'
+        '202':
+          description: Unsuccessfull response
+        '204':
+          description: Unsuccessfull response
+        '400':
+          description: Unsuccessfull response
+        '401':
+          description: Unsuccessfull response
+        '403':
+          description: Unsuccessfull response
+        '408':
+          description: Unsuccessfull response
     post:
       summary: Place Order
-      description: |
-        Please note here, sometimes this end-point alone can't make sure you submit the order successfully,
-        you could receive some questions in the response, you have to to answer them in order to submit the order
-        successfully. You can use "/iserver/reply/{replyid}" end-point to answer questions
+      description: Places order
       tags:
-      - Order
+        - Orders
       parameters:
-      - name: accountId
-        in: path
-        required: true
-        type: string
-        description: account id
-      - in: body
-        name: body
-        description: order request info
-        required: true
-        schema:
-          "$ref": "#/definitions/order-request"
+        - in: body
+          name: body
+          description: Order Parameters
+          required: true
+          schema:
+            $ref: "#/definitions/order"
       responses:
         '200':
-          description: returns an array
+          description: Returns order status information
           schema:
             type: array
             items:
-              type: object
-              properties:
-                id:
-                  type: string
-                message:
-                  type: array
-                  description: |
-                    Please note here, if the message is a question, you have to reply to question in order to submit
-                    the order successfully. See more in the "/iserver/reply/{replyid}" end-point.
-                  items:
-                    type: string
-  "/iserver/account/{accountId}/orders":
-    post:
-      summary: Place Orders (Support bracket orders)
-      description: 'You can pass a list of orders here
-
-'
-      tags:
-      - Order
-      parameters:
-      - name: accountId
-        in: path
-        required: true
-        type: string
-        description: account id
-      - in: body
-        name: body
-        description: order request info
-        required: true
-        schema:
-          type: object
-          properties:
-            orders:
-              type: array
-              description: |
-                Notes for bracket orders: 1. Children orders will not have its own "cOID", so please donot pass "cOID"
-                parameter in child order.Instead, they will have a "parentId" which must be equal to "cOID" of parent.
-                2. When you cancel a parent order, it will cancel all bracket orders, when you cancel one child order,
-                it will also cancel its sibling order.
-              items:
-                "$ref": "#/definitions/order-request"
-      responses:
-        '200':
-          description: returns an array
-          schema:
-            type: array
-            items:
-              type: object
-              properties:
-                id:
-                  type: string
-                message:
-                  type: array
-                  description: |
-                    Please note here, if the message is a question, you have to reply to question in order to submit
-                    the order successfully. See more in the "/iserver/reply/{replyid}" end-point.
-                  items:
-                    type: string
-  "/iserver/reply/{replyid}":
-    post:
-      summary: Place Order Reply
-      description: Reply to questions when placing orders and submit orders
-      tags:
-      - Order
-      parameters:
-      - name: replyid
-        in: path
-        required: true
-        type: string
-        description: Please use the "id" from the response of "Place Order" end-point
-      - in: body
-        name: body
-        description: Answer to question
-        required: true
-        schema:
-          type: object
-          properties:
-            confirmed:
-              description: answer to question, true means yes, false means no
-              type: boolean
-      responses:
-        '200':
-          description: Order is submitted successfully, returns an array contains
-            one object
-          schema:
-            type: array
-            items:
-              type: object
-              properties:
-                order_id:
-                  type: string
-                order_status:
-                  type: string
-                local_order_id:
-                  type: string
+              $ref: '#/definitions/orderState'
+        '202':
+          description: Unsuccessfull response
+        '204':
+          description: Unsuccessfull response
         '400':
-          description: When you send "confirmed-false" in the request, you will receive
-            this
-          schema:
-            type: object
-            properties:
-              error:
-                description: for example-order not confirmed
-                type: string
-              statusCode:
-                type: integer
-  "/iserver/account/{accountId}/order/whatif":
-    post:
-      summary: Preview Order
-      description: |
-        This end-point allows you to preview order without actually submitting the order and you can get
-        commission information in the response.
-      tags:
-      - Order
-      parameters:
-      - name: accountId
-        in: path
-        required: true
-        type: string
-        description: account id
-      - in: body
-        name: body
-        description: order info
-        required: true
-        schema:
-          "$ref": "#/definitions/order-request"
-      responses:
-        '200':
-          description: returns an object
-          schema:
-            type: object
-            properties:
-              amount:
-                type: object
-                properties:
-                  amount:
-                    type: string
-                    description: for example 23,000 USD
-                  commission:
-                    type: string
-                    description: for example 1.1 ... 1.2 USD
-                  total:
-                    type: string
-              equity:
-                type: object
-                properties:
-                  current:
-                    type: string
-                  change:
-                    type: string
-                  after:
-                    type: string
-              initial:
-                type: object
-                properties:
-                  current:
-                    type: string
-                  change:
-                    type: string
-                  after:
-                    type: string
-              maintenance:
-                type: object
-                properties:
-                  current:
-                    type: string
-                  change:
-                    type: string
-                  after:
-                    type: string
-              warn:
-                type: string
-              error:
-                type: string
-  "/iserver/account/{accountId}/order/{origCustomerOrderId}":
-    post:
-      summary: Modify Order
-      description: Modifies an open order. The /iserver/accounts endpoint must first
-        be called.
-      tags:
-      - Order
-      parameters:
-      - name: accountId
-        in: path
-        required: true
-        type: string
-        description: account id
-      - in: path
-        name: origCustomerOrderId
-        description: Customer OrderId
-        required: true
-        type: string
-      - in: body
-        name: body
-        description: modify-order request
-        required: true
-        schema:
-          "$ref": "#/definitions/modify-order"
-      responses:
-        '200':
-          description: returns an array
-          schema:
-            type: array
-            items:
-              type: object
-              properties:
-                order_id:
-                  type: string
-                local_order_id:
-                  type: string
-                order_status:
-                  type: string
-    delete:
-      summary: Delete Order
-      tags:
-      - Order
-      parameters:
-      - name: accountId
-        in: path
-        required: true
-        type: string
-        description: account id
-      - in: path
-        name: origCustomerOrderId
-        description: Customer OrderId
-        required: true
-        type: string
-      responses:
-        '200':
-          description: returns an array
-          schema:
-            type: array
-            items:
-              type: object
-              properties:
-                order_id:
-                  type: string
-                local_order_id:
-                  type: string
-                order_status:
-                  type: string
-  "/iserver/marketdata/snapshot":
-    get:
-      summary: Market Data
-      description: |
-        Get Market Data for the given conid(s). The end-point will return by default bid, ask, last, change, change pct, close, listing exchange.
-        See response fields for a list of available fields that can be request via fields argument.
-        The endpoint /iserver/accounts should be called prior to /iserver/marketdata/snapshot.
-        To receive all available fields the /snapshot endpoint will need to be called several times.
-      tags:
-      - Market Data
-      parameters:
-      - in: query
-        name: conids
-        description: list of conids separated by comma
-        required: true
-        type: string
-      - in: query
-        name: since
-        description: time period since which updates are required. uses epoch time
-          with milliseconds.
-        required: false
-        type: integer
-      - in: query
-        name: fields
-        description: list of fields separated by comma
-        required: false
-        type: string
-      responses:
-        '200':
-          description: Returns an array of objects
-          schema:
-            type: array
-            items:
-              type: object
-              properties:
-                '31':
-                  type: string
-                  description: Last Price
-                '55':
-                  type: string
-                  description: Symbol
-                '58':
-                  type: string
-                  description: Text
-                '70':
-                  type: string
-                  description: High
-                '71':
-                  type: string
-                  description: Low
-                '72':
-                  type: string
-                  description: Position
-                '73':
-                  type: string
-                  description: Market Value
-                '74':
-                  type: string
-                  description: Average Price
-                '75':
-                  description: Unrealized PnL
-                  type: string
-                '76':
-                  type: string
-                '77':
-                  type: string
-                '78':
-                  type: string
-                '82':
-                  type: string
-                  description: Change Price
-                '83':
-                  type: string
-                  description: Change Percent
-                '84':
-                  type: string
-                  description: Bid Price
-                '85':
-                  type: string
-                  description: Ask Size
-                '86':
-                  type: string
-                  description: Ask Price
-                '87':
-                  type: string
-                  description: Volume
-                '88':
-                  type: string
-                  description: Bid Size
-                '6004':
-                  type: string
-                  description: Exchange
-                '6008':
-                  type: string
-                  description: Conid
-                '6070':
-                  type: string
-                  description: Security Type
-                '6072':
-                  type: string
-                  description: Months
-                '6073':
-                  type: string
-                  description: Regular Expiry
-                '6119':
-                  type: string
-                '6457':
-                  type: string
-                  description: Underlying Conid. Use /trsrv/secdef to get more information
-                    about the security
-                '6509':
-                  type: string
-                  description: |
-                    Market Data Availability. The field may contain two chars. The first char is the primary code: R = Realtime, D = Delayed,
-                    Z = Frozen, Y = Frozen Delayed. The second char is the secondary code: P = Snapshot Available, p = Consolidated.
-                '7051':
-                  type: string
-                '7094':
-                  type: string
-                  description: Conid + Exchange
-                '7219':
-                  type: string
-                  description: Contract Description
-                '7220':
-                  type: string
-                  description: Contract Description
-                '7221':
-                  type: string
-                  description: Listing Exchange
-                '7280':
-                  type: string
-                  description: Industry
-                '7281':
-                  type: string
-                  description: Category
-                '7282':
-                  type: string
-                  description: Average Daily Volume
-                '7284':
-                  type: string
-                  description: Historic Volume (30d)
-                '7285':
-                  type: string
-                  description: Put/Call Ratio
-                '7286':
-                  type: string
-                  description: Dividend Amount
-                '7287':
-                  type: string
-                  description: Dividend Yield %
-                '7288':
-                  type: string
-                  description: Ex-date of the dividend
-                '7289':
-                  type: string
-                  description: Market Cap
-                '7290':
-                  type: string
-                  description: P/E
-                '7291':
-                  type: string
-                  description: EPS
-                '7292':
-                  type: string
-                  description: Cost Basis
-                '7293':
-                  type: string
-                  description: 52 Week High
-                '7294':
-                  type: string
-                  description: 52 Week Low
-                '7295':
-                  type: string
-                  description: Open Price
-                '7296':
-                  type: string
-                  description: Close Price
-                '7633':
-                  type: string
-                  description: Implied volatility of the option
-                server_id:
-                  type: string
-                conid:
-                  type: integer
-                _updated:
-                  type: integer
-        '400':
-          description: sent when accounts are not queried before sending this request
-          schema:
-            type: object
-            properties:
-              error:
-                type: string
-              statusCode:
-                type: integer
-  "/iserver/marketdata/history":
-    get:
-      summary: Market Data History
-      description: Get history of market Data for the given conid, length of data
-        is controlled by period and bar. e.g. 1y period with bar =1w returns 52 data
-        points
-      tags:
-      - Market Data
-      parameters:
-      - in: query
-        name: conid
-        description: contract id
-        required: true
-        type: string
-      - in: query
-        name: period
-        description: time period-- 1d,1w,1m,1y
-        required: true
-        type: string
-      - in: query
-        name: bar
-        description: possible value-- 5min,1h,1w
-        required: false
-        type: string
-      responses:
-        '200':
-          description: Returns an object
-          schema:
-            "$ref": "#/definitions/history-data"
-  "/iserver/contract/{conid}/info":
-    get:
-      summary: Contract Info
-      description: get contract details, you can use this to prefill your order before
-        you submit an order
-      tags:
-      - Contract
-      parameters:
-      - name: conid
-        in: path
-        required: true
-        type: string
-        description: contract id
-      responses:
-        '200':
-          description: returns an object
-          schema:
-            "$ref": "#/definitions/contract"
-  "/iserver/secdef/search":
-    post:
-      summary: Search by symbol or name
-      tags:
-      - Contract
-      parameters:
-      - in: body
-        name: symbol
-        required: true
-        description: symbol or name to be searched
-        schema:
-          type: object
-          required:
-          - symbol
-          properties:
-            symbol:
-              type: string
-              description: symbol or name to be searched
-            name:
-              type: boolean
-              description: should be true if the search is to be performed by name.
-                false by default.
-            secType:
-              type: string
-              description: If search is done by name, only the assets provided in
-                this field will be returned. Currently, only STK is supported.
-      responses:
-        '200':
-          description: returns an array of results
-          schema:
-            type: array
-            items:
-              type: object
-              properties:
-                conid:
-                  type: integer
-                companyHeader:
-                  type: string
-                companyName:
-                  type: string
-                symbol:
-                  type: string
-                description:
-                  type: string
-                opt:
-                  type: string
-                war:
-                  type: string
-                sections:
-                  type: array
-                  items:
-                    type: object
-        '500':
-          description: error while processing the request
-          schema:
-            type: object
-            properties:
-              error:
-                type: string
-  "/iserver/scanner/params":
-    get:
-      summary: get lists of available scanners
-      description: Returns an object contains four lists contain all parameters for
-        scanners
-      tags:
-      - Scanner
-      responses:
-        '200':
-          description: An object contains lists
-          schema:
-            type: object
-            properties:
-              scan_type_list:
-                type: array
-                items:
-                  type: object
-                  properties:
-                    display_name:
-                      type: string
-                    code:
-                      type: string
-                    instruments:
-                      type: array
-                      items:
-                        type: string
-                        description: type of instrument
-              instrument_list:
-                type: array
-                items:
-                  type: object
-                  properties:
-                    display_name:
-                      type: string
-                    type:
-                      type: string
-                    filters:
-                      type: array
-                      items:
-                        type: string
-                        description: code of filter
-              filter_list:
-                type: array
-                items:
-                  type: object
-                  properties:
-                    group:
-                      type: string
-                    display_name:
-                      type: string
-                    code:
-                      type: string
-                    type:
-                      type: string
-              location_tree:
-                type: array
-                items:
-                  type: object
-                  properties:
-                    display_name:
-                      type: string
-                    type:
-                      type: string
-                    locations:
-                      type: array
-                      items:
-                        type: object
-                        properties:
-                          display_name:
-                            type: string
-                          type:
-                            type: string
-  "/iserver/scanner/run":
-    post:
-      summary: run scanner to get a list of contracts
-      tags:
-      - Scanner
-      parameters:
-      - in: body
-        name: body
-        description: modify-order request
-        required: true
-        schema:
-          "$ref": "#/definitions/scanner-params"
-      responses:
-        '200':
-          description: returns an array
-          schema:
-            type: array
-            items:
-              type: object
-              properties:
-                server_id:
-                  type: string
-                column_name:
-                  type: string
-                symbol:
-                  type: string
-                conidex:
-                  type: string
-                con_id:
-                  type: number
-                available_chart_periods:
-                  type: string
-                company_name:
-                  type: string
-                contract_description_1:
-                  type: string
-                listing_exchange:
-                  type: string
-                sec_type:
-                  type: string
-  "/iserver/account/pnl/partitioned":
-    get:
-      summary: PnL for the selected account
-      description: Returns an object containing PnLfor the selected account and its
-        models (if any).
-      tags:
-      - PnL
-      - Account
-      responses:
-        '200':
-          description: An object containing account and model(s) pnl
-          schema:
-            type: object
-            properties:
-              acctId:
-                type: object
-  "/sso/validate":
-    get:
-      summary: Validate SSO
-      description: Validates the current session for the SSO user
-      tags:
-      - Session
-      responses:
-        '200':
-          description: An Object
-          schema:
-            type: Object
-            properties:
-              LOGIN_TYPE:
-                description: 1 for Live, 2 for Paper
-                type: number
-              USER_NAME:
-                description: Username
-                type: string
-              USER_ID:
-                description: User ID
-                type: number
-              expire:
-                description: Time in milliseconds until session expires. Caller needs
-                  to call the again to re-validate session
-                type: number
-              RESULT:
-                description: true if session was validated; false if not.
-                type: boolean
-              AUTH_TIME:
-                description: Time of session validation
-                type: number
+          description: Unsuccessfull response
         '401':
-          description: Authentication failed
-        '500':
-          description: System failed
-  "/portfolio/accounts":
-    get:
-      summary: Portfolio Accounts
-      description: In non-tiered account structures, returns a list of accounts for
-        which the user can view position and account information. This endpoint must
-        be called prior  to calling other /portfolio endpoints for those accounts.
-        For querying a list of accounts  which the user can trade, see /iserver/accounts.
-        For a list of subaccounts in tiered  account structures (e.g. financial advisor
-        or ibroker accounts) see /portfolio/subaccounts.
-      tags:
-      - Account
-      - Portfolio
-      responses:
-        '200':
-          description: An array
-          schema:
-            "$ref": "#/definitions/accounts"
-  "/portfolio/subaccounts":
-    get:
-      summary: List of Sub-Accounts
-      description: Used in tiered account structures (such as financial advisor and
-        ibroker accounts)  to return a list of sub-accounts for which the user can
-        view position and  account-related information. This endpoint must be called
-        prior to calling other  /portfolio endpoints for those subaccounts.  To query
-        a list of accounts the user can trade, see /iserver/accounts.
-      tags:
-      - Account
-      - Portfolio
-      responses:
-        '200':
-          description: An array
-          schema:
-            "$ref": "#/definitions/account"
-  "/portfolio/{accountId}/meta":
-    get:
-      summary: Account Information
-      description: Account information related to account Id /portfolio/accounts or
-        /portfolio/subaccounts must be called prior to this endpoint.
-      tags:
-      - Account
-      - Portfolio
-      parameters:
-      - name: accountId
+          description: Unsuccessfull response
+        '403':
+          description: Unsuccessfull response
+        '408':
+          description: Unsuccessfull response
+  '/accounts/{account}/orders/{CustomerOrderId}':
+    parameters:
+      - name: account
         in: path
         required: true
         type: string
-        description: account id
-      responses:
-        '200':
-          description: An object
-          schema:
-            "$ref": "#/definitions/accounts"
-  "/portfolio/{accountId}/allocation":
+        description: Account Number
+      - name: CustomerOrderId
+        in: path
+        required: true
+        type: string
+        description: Customer Order ID
     get:
-      summary: Account Allocation
-      description: Information about the account's portfolio allocation by Asset Class,
-        Industry and Category.  /portfolio/accounts or /portfolio/subaccounts must
-        be called prior to this endpoint.
+      summary: Return specific order info
       tags:
-      - Portfolio
-      parameters:
-      - name: accountId
-        in: path
-        required: true
-        type: string
-        description: account id
+        - Orders
+      description: >-
+        Returns the order with the referenced Customer Order ID for the account
+        passed in the URL.
       responses:
         '200':
-          description: returns an object of three different allocations
+          description: Returns order status information
           schema:
-            "$ref": "#/definitions/allocation"
-  "/portfolio/allocation":
-    post:
-      summary: Account Alloction (All Accounts)
-      description: Similar to /portfolio/{accountId}/allocation but returns a consolidated
-        view of of all the accounts returned by /portfolio/accounts. /portfolio/accounts
-        or /portfolio/subaccounts must be called prior to this endpoint.
+            type: array
+            items:
+              $ref: '#/definitions/orderState'
+        '202':
+          description: Unsuccessfull response
+        '204':
+          description: Unsuccessfull response
+        '400':
+          description: Unsuccessfull response
+        '401':
+          description: Unsuccessfull response
+        '403':
+          description: Unsuccessfull response
+        '408':
+          description: Unsuccessfull response
+    delete:
+      summary: Cancel Order
       tags:
-      - Portfolio
-      parameters:
-      - in: body
-        name: body
-        description: accounts info
-        required: true
-        schema:
-          type: object
-          properties:
-            acctIds:
-              type: array
-              items:
-                type: string
-                description: account id
+        - Orders
+      description: >-
+        Cancels the order with the referenced Customer Order ID for the account
+        passed in the URL.
       responses:
         '200':
-          description: returns an object of three different allocations
-          schema:
-            "$ref": "#/definitions/allocation"
-  "/portfolio/{accountId}/positions/{pageId}":
-    get:
-      summary: Portfolio Positions
-      description: Returns a list of positions for the given account. The endpoint
-        supports paging, page's default size is 30 positions. /portfolio/accounts
-        or /portfolio/subaccounts must be called prior to this endpoint.
-      tags:
-      - Portfolio
-      parameters:
-      - name: accountId
-        in: path
-        required: true
-        type: string
-        description: account id
-      - name: pageId
-        in: path
-        required: true
-        type: string
-        default: '0'
-        description: page id
-      - name: model
-        in: query
-        type: string
-        description: optional
-      - name: sort
-        in: query
-        type: string
-        description: declare the table to be sorted by which column
-      - name: direction
-        in: query
-        type: string
-        description: in which order, a means ascending - d means descending
-      - name: period
-        in: query
-        type: string
-        description: period for pnl column, can be 1D, 7D, 1M...
-      responses:
-        '200':
-          description: returns a list of positions in the portfolio
-          schema:
-            "$ref": "#/definitions/position"
-  "/portfolio/{accountId}/position/{conid}":
-    get:
-      summary: Position by Conid
-      description: Returns a list of all positions matching the conid. For portfolio
-        models the conid could be in more than one model, returning an array with
-        the name of the model it belongs to.  /portfolio/accounts or /portfolio/subaccounts
-        must be called prior to this endpoint.
-      tags:
-      - Portfolio
-      parameters:
-      - name: accountId
-        in: path
-        required: true
-        type: string
-        description: account id
-      - name: conid
-        in: path
-        required: true
-        type: integer
-        description: contract id
-      responses:
-        '200':
-          description: returns a list containing only one position for the conid
-          schema:
-            "$ref": "#/definitions/position"
-  "/portfolio/{accountId}/positions/invalidate":
-    post:
-      summary: Invalidates the backend cache of the Portfolio
-      tags:
-      - Portfolio
-      parameters:
-      - name: accountId
-        in: path
-        required: true
-        type: string
-        description: account id
-      responses:
-        '200':
-          description: 200 means successful
-          schema:
-            type: object
-  "/portfolio/{accountId}/summary":
-    get:
-      summary: Account Summary
-      description: Returns information about margin, cash balances and other information
-        related to specified account. See also /portfolio/{accountId}/ledger. /portfolio/accounts
-        or /portfolio/subaccounts must be called prior to this endpoint.
-      tags:
-      - Account
-      - Portfolio
-      parameters:
-      - name: accountId
-        in: path
-        required: true
-        type: string
-        description: account id
-      responses:
-        '200':
-          description: returns an object containing account summary. The object contains
-            multiple properties. A property is sufficed with -c if its provides commodity
-            value, -s if it provides security value and -c if its UKL segment value
-          schema:
-            type: object
-            properties:
-              accountready:
-                "$ref": "#/definitions/summary"
-              accounttype:
-                "$ref": "#/definitions/summary"
-              accruedcash:
-                "$ref": "#/definitions/summary"
-              accruedcash-c:
-                "$ref": "#/definitions/summary"
-              accruedcash-f:
-                "$ref": "#/definitions/summary"
-              accruedcash-s:
-                "$ref": "#/definitions/summary"
-              accrueddividend:
-                "$ref": "#/definitions/summary"
-              accrueddividend-c:
-                "$ref": "#/definitions/summary"
-              accrueddividend-f:
-                "$ref": "#/definitions/summary"
-              accrueddividend-s:
-                "$ref": "#/definitions/summary"
-              availablefunds:
-                "$ref": "#/definitions/summary"
-              availablefunds-c:
-                "$ref": "#/definitions/summary"
-              availablefunds-f:
-                "$ref": "#/definitions/summary"
-              availablefunds-s:
-                "$ref": "#/definitions/summary"
-              billable:
-                "$ref": "#/definitions/summary"
-              billable-c:
-                "$ref": "#/definitions/summary"
-              billable-f:
-                "$ref": "#/definitions/summary"
-              billable-s:
-                "$ref": "#/definitions/summary"
-              buyingpower:
-                "$ref": "#/definitions/summary"
-              cushion:
-                "$ref": "#/definitions/summary"
-              daytradesremaining:
-                "$ref": "#/definitions/summary"
-              daytradesremainingt+1:
-                "$ref": "#/definitions/summary"
-              daytradesremainingt+2:
-                "$ref": "#/definitions/summary"
-              daytradesremainingt+3:
-                "$ref": "#/definitions/summary"
-              daytradesremainingt+4:
-                "$ref": "#/definitions/summary"
-              equitywithloanvalue:
-                "$ref": "#/definitions/summary"
-              equitywithloanvalue-c:
-                "$ref": "#/definitions/summary"
-              equitywithloanvalue-f:
-                "$ref": "#/definitions/summary"
-              equitywithloanvalue-s:
-                "$ref": "#/definitions/summary"
-              excessliquidity:
-                "$ref": "#/definitions/summary"
-              excessliquidity-c:
-                "$ref": "#/definitions/summary"
-              excessliquidity-f:
-                "$ref": "#/definitions/summary"
-              excessliquidity-s:
-                "$ref": "#/definitions/summary"
-              fullavailablefunds:
-                "$ref": "#/definitions/summary"
-              fullavailablefunds-c:
-                "$ref": "#/definitions/summary"
-              fullavailablefunds-f:
-                "$ref": "#/definitions/summary"
-              fullavailablefunds-s:
-                "$ref": "#/definitions/summary"
-              fullexcessliquidity:
-                "$ref": "#/definitions/summary"
-              fullexcessliquidity-c:
-                "$ref": "#/definitions/summary"
-              fullexcessliquidity-f:
-                "$ref": "#/definitions/summary"
-              fullexcessliquidity-s:
-                "$ref": "#/definitions/summary"
-              fullinitmarginreq:
-                "$ref": "#/definitions/summary"
-              fullinitmarginreq-c:
-                "$ref": "#/definitions/summary"
-              fullinitmarginreq-f:
-                "$ref": "#/definitions/summary"
-              fullinitmarginreq-s:
-                "$ref": "#/definitions/summary"
-              fullmaintmarginreq:
-                "$ref": "#/definitions/summary"
-              fullmaintmarginreq-c:
-                "$ref": "#/definitions/summary"
-              fullmaintmarginreq-f:
-                "$ref": "#/definitions/summary"
-              fullmaintmarginreq-s:
-                "$ref": "#/definitions/summary"
-              grosspositionvalue:
-                "$ref": "#/definitions/summary"
-              grosspositionvalue-c:
-                "$ref": "#/definitions/summary"
-              grosspositionvalue-f:
-                "$ref": "#/definitions/summary"
-              grosspositionvalue-s:
-                "$ref": "#/definitions/summary"
-              guarantee:
-                "$ref": "#/definitions/summary"
-              guarantee-c:
-                "$ref": "#/definitions/summary"
-              guarantee-f:
-                "$ref": "#/definitions/summary"
-              guarantee-s:
-                "$ref": "#/definitions/summary"
-              highestseverity:
-                "$ref": "#/definitions/summary"
-              highestseverity-c:
-                "$ref": "#/definitions/summary"
-              highestseverity-f:
-                "$ref": "#/definitions/summary"
-              highestseverity-s:
-                "$ref": "#/definitions/summary"
-              indianstockhaircut:
-                "$ref": "#/definitions/summary"
-              indianstockhaircut-c:
-                "$ref": "#/definitions/summary"
-              indianstockhaircut-f:
-                "$ref": "#/definitions/summary"
-              indianstockhaircut-s:
-                "$ref": "#/definitions/summary"
-              initmarginreq:
-                "$ref": "#/definitions/summary"
-              initmarginreq-c:
-                "$ref": "#/definitions/summary"
-              initmarginreq-f:
-                "$ref": "#/definitions/summary"
-              initmarginreq-s:
-                "$ref": "#/definitions/summary"
-              leverage:
-                "$ref": "#/definitions/summary"
-              leverage-c:
-                "$ref": "#/definitions/summary"
-              leverage-f:
-                "$ref": "#/definitions/summary"
-              leverage-s:
-                "$ref": "#/definitions/summary"
-              lookaheadavailablefunds:
-                "$ref": "#/definitions/summary"
-              lookaheadavailablefunds-c:
-                "$ref": "#/definitions/summary"
-              lookaheadavailablefunds-f:
-                "$ref": "#/definitions/summary"
-              lookaheadavailablefunds-s:
-                "$ref": "#/definitions/summary"
-              lookaheadexcessliquidity:
-                "$ref": "#/definitions/summary"
-              lookaheadexcessliquidity-c:
-                "$ref": "#/definitions/summary"
-              lookaheadexcessliquidity-f:
-                "$ref": "#/definitions/summary"
-              lookaheadexcessliquidity-s:
-                "$ref": "#/definitions/summary"
-              lookaheadinitmarginreq:
-                "$ref": "#/definitions/summary"
-              lookaheadinitmarginreq-c:
-                "$ref": "#/definitions/summary"
-              lookaheadinitmarginreq-f:
-                "$ref": "#/definitions/summary"
-              lookaheadinitmarginreq-s:
-                "$ref": "#/definitions/summary"
-              lookaheadmaintmarginreq:
-                "$ref": "#/definitions/summary"
-              lookaheadmaintmarginreq-c:
-                "$ref": "#/definitions/summary"
-              lookaheadmaintmarginreq-f:
-                "$ref": "#/definitions/summary"
-              lookaheadmaintmarginreq-s:
-                "$ref": "#/definitions/summary"
-              lookaheadnextchange:
-                "$ref": "#/definitions/summary"
-              maintmarginreq:
-                "$ref": "#/definitions/summary"
-              maintmarginreq-c:
-                "$ref": "#/definitions/summary"
-              maintmarginreq-f:
-                "$ref": "#/definitions/summary"
-              maintmarginreq-s:
-                "$ref": "#/definitions/summary"
-              netliquidation:
-                "$ref": "#/definitions/summary"
-              netliquidation-c:
-                "$ref": "#/definitions/summary"
-              netliquidation-f:
-                "$ref": "#/definitions/summary"
-              netliquidation-s:
-                "$ref": "#/definitions/summary"
-              netliquidationuncertainty:
-                "$ref": "#/definitions/summary"
-              nlvandmargininreview:
-                "$ref": "#/definitions/summary"
-              pasharesvalue:
-                "$ref": "#/definitions/summary"
-              pasharesvalue-c:
-                "$ref": "#/definitions/summary"
-              pasharesvalue-f:
-                "$ref": "#/definitions/summary"
-              pasharesvalue-s:
-                "$ref": "#/definitions/summary"
-              postexpirationexcess:
-                "$ref": "#/definitions/summary"
-              postexpirationexcess-c:
-                "$ref": "#/definitions/summary"
-              postexpirationexcess-f:
-                "$ref": "#/definitions/summary"
-              postexpirationexcess-s:
-                "$ref": "#/definitions/summary"
-              postexpirationmargin:
-                "$ref": "#/definitions/summary"
-              postexpirationmargin-c:
-                "$ref": "#/definitions/summary"
-              postexpirationmargin-f:
-                "$ref": "#/definitions/summary"
-              postexpirationmargin-s:
-                "$ref": "#/definitions/summary"
-              previousdayequitywithloanvalue:
-                "$ref": "#/definitions/summary"
-              previousdayequitywithloanvalue-c:
-                "$ref": "#/definitions/summary"
-              previousdayequitywithloanvalue-f:
-                "$ref": "#/definitions/summary"
-              previousdayequitywithloanvalue-s:
-                "$ref": "#/definitions/summary"
-              segmenttitle-c:
-                "$ref": "#/definitions/summary"
-              segmenttitle-f:
-                "$ref": "#/definitions/summary"
-              segmenttitle-s:
-                "$ref": "#/definitions/summary"
-              totalcashvalue:
-                "$ref": "#/definitions/summary"
-              totalcashvalue-c:
-                "$ref": "#/definitions/summary"
-              totalcashvalue-f:
-                "$ref": "#/definitions/summary"
-              totalcashvalue-s:
-                "$ref": "#/definitions/summary"
-              totaldebitcardpendingcharges:
-                "$ref": "#/definitions/summary"
-              totaldebitcardpendingcharges-c:
-                "$ref": "#/definitions/summary"
-              totaldebitcardpendingcharges-f:
-                "$ref": "#/definitions/summary"
-              totaldebitcardpendingcharges-s:
-                "$ref": "#/definitions/summary"
-              tradingtype-f:
-                "$ref": "#/definitions/summary"
-              tradingtype-s:
-                "$ref": "#/definitions/summary"
-  "/portfolio/{accountId}/ledger":
-    get:
-      summary: Account Ledger
-      description: Information regarding settled cash, cash balances, etc. in the
-        account's base currency and any other cash balances hold in other currencies.  /portfolio/accounts
-        or /portfolio/subaccounts must be called prior to this endpoint. The list
-        of supported currencies is available at https://www.interactivebrokers.com/en/index.php?f=3185.
-      tags:
-      - Account
-      - Portfolio
-      parameters:
-      - name: accountId
-        in: path
-        required: true
-        type: string
-        description: account id
-      responses:
-        '200':
-          description: 200 means successful
-          schema:
-            type: object
-            properties:
-              BASE:
-                "$ref": "#/definitions/ledger"
-  "/portfolio/positions/{conid}":
-    get:
-      summary: Positions by Conid
-      description: Returns an object of all positions matching the conid for all the
-        selected accounts. For portfolio models the conid could be in more than one
-        model, returning an array with the name of the model it belongs to. /portfolio/accounts
-        or /portfolio/subaccounts must be called prior to this endpoint.
-      tags:
-      - Portfolio
-      parameters:
-      - name: conid
-        in: path
-        required: true
-        type: integer
-        description: contract id
-      responses:
-        '200':
-          description: returns an object containing account and its position information
-          schema:
-            type: object
-            properties:
-              ACCTID:
-                "$ref": "#/definitions/position"
-  "/tickle":
-    post:
-      summary: Ping the server to keep the session open
-      description: If the gateway has not received any requests for several minutes
-        an open session will automatically timeout. The tickle endpoint pings the
-        server to prevent the session from ending.
-      tags:
-      - Session
-      responses:
-        '200':
-          description: confirms session is open
-  "/logout":
-    post:
-      summary: Ends the current session
-      description: Logs the user out of the gateway session. Any further activity
-        requires re-authentication.
-      tags:
-      - Session
-      responses:
-        '200':
-          description: returned status indicates if user is logged in
-          schema:
-            type: object
-            properties:
-              confirmed:
-                description: true means username is still logged in, false means it
-                  is not
-                type: boolean
-  "/pa/performance":
-    post:
-      summary: Account Performance
-      description: Returns the performance (MTM) for the given accounts, if more than
-        one account is passed, the result is consolidated.
-      tags:
-      - PortfolioAnalyst
-      parameters:
-      - in: body
-        name: body
-        description: an array of account ids
-        required: true
-        schema:
-          type: object
-          properties:
-            acctIds:
-              type: array
-              items:
-                type: string
-                description: account id
-      responses:
-        '200':
-          description: returns an object
-          schema:
-            "$ref": "#/definitions/performance"
-  "/pa/summary":
-    post:
-      summary: Account Balance's Summary
-      description: Returns a summary of all account balances for the given accounts,
-        if more than one account is passed, the result is consolidated.
-      tags:
-      - PortfolioAnalyst
-      parameters:
-      - in: body
-        name: body
-        description: an array of account ids
-        required: true
-        schema:
-          type: object
-          properties:
-            acctIds:
-              type: array
-              items:
-                type: string
-                description: account id
-      responses:
-        '200':
-          description: returns an object
-          schema:
-            "$ref": "#/definitions/summary"
-  "/trsrv/secdef":
-    post:
-      summary: Secdef by Conid
-      description: Returns a list of security definitions for the given conids
-      tags:
-      - Contract
-      parameters:
-      - in: body
-        name: body
-        description: request body
-        required: true
-        schema:
-          type: object
-          properties:
-            conids:
-              type: array
-              items:
-                type: integer
-                description: contract id
-      responses:
-        '200':
-          description: returns an array of secdef info
-          schema:
-            "$ref": "#/definitions/secdef"
-  "/trsrv/futures":
-    get:
-      summary: Security Futures by Symbol
-      description: Returns a list of non-expired future contracts for given symbol(s)
-      tags:
-      - Contract
-      parameters:
-      - in: query
-        name: symbols
-        description: list of case-sensitive symbols separated by comma
-        required: true
-        type: string
-      responses:
-        '200':
-          description: returns an object with symbol and and array of its future contracts
-          schema:
-            type: object
-            properties:
-              symbol:
-                "$ref": "#/definitions/futures"
-        '500':
-          description: error while processing the request
-          schema:
-            type: object
-            properties:
-              error:
-                type: string
-  "/ibcust/entity/info":
-    get:
-      summary: IBCust Entity Info
-      description: Returns Applicant Id with all owner related entities
-      tags:
-      - IBCust
-      responses:
-        '200':
-          description: Search result
+          description: Returns result of cancellation attempt
           schema:
             type: array
             items:
               type: object
               properties:
-                applicantId:
+                CustomerOrderId:
+                  type: string
+                Symbol:
                   type: number
-                entities:
+                OrderQty:
+                  type: number
+                Price:
+                  type: string
+                Side:
+                  type: number
+                  enum: [1, 2]
+                Status:
+                  $ref: '#/definitions/orderStatus'
+                Warning:
+                  type: string
+                OrderType:
+                  $ref: '#/definitions/orderType'
+        '202':
+          description: Unsuccessfull response
+        '204':
+          description: Unsuccessfull response
+        '400':
+          description: Unsuccessfull response
+        '401':
+          description: Unsuccessfull response
+        '403':
+          description: Unsuccessfull response
+        '408':
+          description: Unsuccessfull response
+    put:
+      summary: Modify Order
+      tags:
+        - Orders
+      description: >-
+        Allows the caller to modify the order with the referenced Customer Order
+        ID specified in the URL. A separate Customer Order ID must be provided
+        in the request body for the modification.
+      parameters:
+        - in: body
+          name: body
+          description: Order Parameters
+          required: true
+          schema:
+            $ref:  "#/definitions/order"
+      responses:
+        '200':
+          description: Result of order modification attempt
+          schema:
+            type: array
+            items:
+              type: object
+              properties:
+                CustomerOrderId:
+                  type: string
+                Symbol:
+                  type: number
+                OrderQty:
+                  type: number
+                Price:
+                  type: string
+                Side:
+                  type: number
+                  enum: [1, 2]
+                Status:
+                  $ref: '#/definitions/orderStatus'
+                Warning:
+                  type: string
+                OrderType:
+                  $ref: '#/definitions/orderType'
+        '202':
+          description: Unsuccessfull response
+        '204':
+          description: Unsuccessfull response
+        '400':
+          description: Unsuccessfull response
+        '401':
+          description: Unsuccessfull response
+        '403':
+          description: Unsuccessfull response
+        '408':
+          description: Unsuccessfull response
+  '/accounts/{account}/order_impact':
+    parameters:
+      - name: account
+        in: path
+        required: true
+        type: string
+        description: Account Number
+    post:
+      summary: Return margin impact info
+      tags:
+        - Order Margin Requirements
+      description: >
+        This endpoint allows the consumer to check the impact that an order
+        would have on the account, including margin, NLV and estimated
+        commission costs.
+
+        To specify the contract, you provide a value for the ContractId field,
+        OR Ticker/ListingExchange/InstrumentType=STK for stocks OR
+        Ticker/Currency/InstrumentType=CASH for FX.
+      parameters:
+        - in: body
+          name: body
+          description: Order Parameters
+          required: true
+          schema:
+            type: object
+            properties:
+              CustomerOrderId:
+                type: string
+                description: The order ID assigned by the customer.
+              Ticker:
+                type: string
+                description: The symbol that identifies the trading product
+              ListingExchange:
+                type: string
+                description: >-
+                  The exchange on which the trading product is listed (only for
+                  InstrumentType=STK)
+              Currency:
+                type: string
+                description: >-
+                  The currency in which the FX pair trades (only for
+                  InstrumentType=CASH)
+              InstrumentType:
+                type: string
+                description: The instrument type of the contract
+              ContractId:
+                type: number
+                description: >-
+                  The internal IB identifier for the trading product specified
+                  as an integer (can be obtained in response to /secdef request)
+              Quantity:
+                type: number
+                description: The number of units in the order; contracts or shares
+              Price:
+                type: number
+                description: The order price
+              Order Type:
+                $ref: '#/definitions/orderType'
+              Aux Price:
+                type: number
+                description: Required price to support Stop and Stop Limit orders
+              Time in Force:
+                $ref: '#/definitions/timeInForce'
+              Side:
+                type: number
+                description: 'Buy = ''1'', Sell = ''2'''
+                enum: [1, 2]
+      responses:
+        '200':
+          description: Order impact info
+          schema:
+            type: object
+            properties:
+              EquityWithLoan:
+                type: number
+              InitMargin:
+                type: number
+              InitMarginBefore:
+                type: number
+              MaintMargin:
+                type: number
+              MaintMarginBefore:
+                type: number
+              MarginCurrency:
+                type: string
+              Commission:
+                type: number
+              MinCommissions:
+                type: number
+              MaxCommissions:
+                type: number
+              CommissionsCurrency:
+                type: string
+        '202':
+          description: Unsuccessfull response
+        '204':
+          description: Unsuccessfull response
+        '400':
+          description: Unsuccessfull response
+        '401':
+          description: Unsuccessfull response
+        '403':
+          description: Unsuccessfull response
+        '408':
+          description: Unsuccessfull response
+  '/accounts/{account}/trades':
+    parameters:
+      - name: account
+        in: path
+        required: true
+        type: string
+        description: Account Number
+    get:
+      summary: Returns trades in account
+      tags:
+        - Trades
+      description: >
+        Returns a list of trades for the account starting at the given 'since'
+        date to the current time (now()). Timezone is UTC. Any request with a
+        future since date or going further than one week will result in an HTTP
+        400 bad request response. Calling /trades without since will return all
+        trades for the past 24 hours.
+      parameters:
+        - in: body
+          name: since
+          description: >
+            Start time specified in UTC. Allowed formats are "yyyy-MM-dd" or
+            "yyyy-MM-dd'T'HH:mm:ss". Time is optional and is set to midnight if
+            omitted, e.g. "00:00:00 hh:mm:ss".
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of Trades
+          schema:
+            type: array
+            items:
+              type: object
+              properties:
+                CustomerOrderId:
+                  type: number
+                ContractId:
+                  type: number
+                OrderId:
+                  type: string
+                Ticker:
+                  type: string
+                ListingExchange:
+                  type: string
+                Currency:
+                  type: string
+                Side:
+                  type: string
+                  enum: [1, 2]
+                OrderType:
+                  $ref: '#/definitions/orderType'
+                FilledQuantity:
+                  type: number
+                RemainingQuantity:
+                  type: number
+                Quantity:
+                  type: number
+                TradePrice:
+                  type: number
+                TradeSize:
+                  type: number
+                AvgPrice:
+                  type: number
+                ExecutionTime:
+                  type: string
+                ExecId:
+                  type: string
+                Commission:
+                  type: number
+                CommissionCurrency:
+                  type: string
+                LastMarket:
+                  type: string
+        '202':
+          description: Unsuccessfull response
+        '204':
+          description: Unsuccessfull response
+        '400':
+          description: Unsuccessfull response
+        '401':
+          description: Unsuccessfull response
+        '403':
+          description: Unsuccessfull response
+        '408':
+          description: Unsuccessfull response
+  /secdef:
+    get:
+      summary: Get security definition
+      tags:
+        - Financial Instrument Definitions
+      description: |
+        Fields that compose security definition. Allowed combinations,
+        (1) type and symbol and currency, or
+        (2) type, symbol, exchange, and currency, or
+        (3) conid
+      parameters:
+        - in: body
+          name: body
+          description: Order Parameters
+          required: true
+          schema:
+            type: object
+            properties:
+              type:
+                type: string
+                description: The instrument type of the contract (CASH).
+              symbol:
+                type: string
+                description: The symbol that identifies the trading product.
+              currency:
+                type: string
+                description: The currency in which the given pair trades.
+              exchange:
+                type: string
+                description: >-
+                  The exchange on which the trading product is listed (required
+                  for type=STK).
+              conid:
+                type: number
+                description: >-
+                  The internal IB identifier for the trading product specified
+                  as an integer.
+      responses:
+        '200':
+          description: Financial Instrument Definition
+          schema:
+            type: array
+            items:
+              type: object
+              properties:
+                ContractId:
+                  type: number
+                Ticker:
+                  type: string
+                SecurityType:
+                  type: string
+                Exchange:
+                  type: string
+                CompanyName:
+                  type: string
+                Currency:
+                  type: string
+        '202':
+          description: Unsuccessfull response
+        '204':
+          description: Unsuccessfull response
+        '400':
+          description: Unsuccessfull response
+        '401':
+          description: Unsuccessfull response
+        '403':
+          description: Unsuccessfull response
+        '408':
+          description: Unsuccessfull response
+  /marketdata/snapshot:
+    get:
+      summary: Market Data Snapshot
+      tags:
+        - Market Data
+      description: >
+        This endpoint allows the consumer to request a market data snapshot for
+        one or more trading products. 
+
+        Consumers need to provide unique identifiers (conids) for the products
+        in the IB product database (retrievable using the /secdef endpoint). The
+        'market' values are integers whose bits indicate the exchange(s) making
+        up the quote. 
+
+
+        The mapping of bit to exchange is obtained from the
+        marketdata/exchange_component endpoint. For example, if a bid has a
+        'market' value of 5 and the exchange_component result has the map 
+
+        0 => NYSE, 1 => ISLAND, 2 => ARCA then the exchanges contributing to the
+        bid size are NYSE and ARCA. 
+
+
+        Similarly, if market=2, then only ISLAND is contributing.
+      parameters:
+        - in: body
+          name: body
+          description: >-
+            Contract. Allowed combinations are [type and symbol and currency],
+            or [type, symbol, exchange, and currency], or [conid].
+          required: true
+          schema:
+            type: array
+            items:
+              type: object
+              properties:
+                type:
+                  type: string
+                  description: The instrument type of the contract (CASH).
+                symbol:
+                  type: string
+                  description: The symbol that identifies the trading product.
+                currency:
+                  type: string
+                  description: The currency in which the given pair trades.
+                exchange:
+                  type: string
+                  description: >-
+                    The exchange on which the trading product is listed
+                    (required for type=STK).
+                conid:
+                  type: number
+                  description: >-
+                    The internal IB identifier for the trading product specified
+                    as an integer.
+      responses:
+        '200':
+          description: Financial Instrument Definition
+          schema:
+            type: array
+            items:
+              type: object
+              properties:
+                Conid:
+                  type: string
+                Temporality:
+                  type: number
+                  description: |
+                    0 = Real time data
+                    1 = Delayed data
+                  enum: [0, 1]
+                Complete:
+                  type: boolean
+                Trade:
+                  type: object
+                  properties:
+                    market:
+                      type: number
+                    price:
+                      type: number
+                    size:
+                      type: number
+                    time:
+                      type: number
+                Closing:
+                  type: object
+                  properties:
+                    price:
+                      type: number
+                Bid:
+                  type: object
+                  properties:
+                    market:
+                      type: number
+                    price:
+                      type: number
+                    size:
+                      type: number
+                Offer:
+                  type: object
+                  properties:
+                    market:
+                      type: number
+                    price:
+                      type: number
+                    size:
+                      type: number
+        '400':
+          description: Unsuccessfull response
+        '401':
+          description: Unsuccessfull response
+        '403':
+          description: Unsuccessfull response
+        '408':
+          description: Unsuccessfull response
+  /marketdata/exchange_components:
+    get:
+      summary: Exchange Components
+      tags:
+        - Market Data
+      description: >-
+        This endpoint provides a bit mapping for the bid/ask/last 'market'
+        values in the snapshot response. 
+      responses:
+        '200':
+          description: Exchange Components
+          schema:
+            type: array
+            items:
+              type: object
+              properties:
+                ConId:
+                  type: number
+                Complete:
+                  type: boolean
+                mapping:
                   type: array
                   items:
                     type: object
                     properties:
-                      canTrade:
-                        type: boolean
-                      canSign:
-                        type: boolean
-                      type:
+                      bit:
+                        type: number
+                      code:
                         type: string
-                      name:
-                        type: object
-                        properties:
-                          salutation:
-                            type: string
-                          firstName:
-                            type: string
-                          lastName:
-                            type: string
-                      address:
-                        type: object
-                        properties:
-                          street:
-                            type: string
-                          street2:
-                            type: string
-                          city:
-                            type: string
-                          state:
-                            type: string
-                          postalCode:
-                            type: string
-                          country:
-                            type: string
-                          countryCode:
-                            type: string
-                          compact:
-                            type: string
-                      identDocs:
-                        type: array
-                        items:
-                          type: object
-                          items:
-                            type: object
-                            properties:
-                              country:
-                                type: string
-                              state:
-                                type: string
-                              type:
-                                type: string
-                              value:
-                                type: string
-  "/fyi/unreadnumber":
-    get:
-      summary: Get unread number of fyis
-      tags:
-      - FYI
-      responses:
-        '200':
-          description: An object
-          schema:
-            type: object
-            properties:
-              BN:
-                type: integer
-                description: unread number
-  "/fyi/settings":
-    get:
-      summary: Get a list of subscriptions
-      tags:
-      - FYI
-      description: 'return the current choices of subscriptions, we can toggle the
-        option
-
-'
-      responses:
-        '200':
-          description: An array
-          schema:
-            type: array
-            items:
-              type: object
-              properties:
-                A:
-                  type: integer
-                  description: optional, if A doesn't exist, it means user can't toggle
-                    this option. 0-off, 1-on.
-                FC:
-                  type: string
-                  description: fyi code
-                H:
-                  type: integer
-                  description: disclaimer read, 1 = yes, = 0 no.
-                FD:
-                  type: string
-                  description: detailed description
-                FN:
-                  type: string
-                  description: title
-  "/fyi/settings/{typecode}":
-    post:
-      summary: enable/disable certain subscription
-      tags:
-      - FYI
-      parameters:
-      - name: typecode
-        in: path
-        required: true
-        type: string
-        description: fyi code
-      - in: body
-        name: body
-        required: true
-        schema:
-          type: object
-          properties:
-            enabled:
-              type: boolean
-      responses:
-        '200':
-          description: 200 means successful
-          schema:
-            type: object
-  "/fyi/disclaimer/{typecode}":
-    get:
-      summary: get disclaimer for a certain kind of fyi
-      tags:
-      - FYI
-      parameters:
-      - name: typecode
-        in: path
-        required: true
-        type: string
-        description: fyi code, for example --M8, EA
-      responses:
-        '200':
-          description: receives the disclaimer message
-          schema:
-            type: object
-            properties:
-              DT:
-                type: string
-                description: disclaimer message
-              FC:
-                type: string
-                description: fyi code
-    put:
-      summary: mark disclaimer read
-      tags:
-      - FYI
-      parameters:
-      - name: typecode
-        in: path
-        required: true
-        type: string
-        description: fyi code, for example --M8, EA
-      responses:
-        '200':
-          description: 200 means successful
-          schema:
-            type: object
-            properties:
-              T:
-                type: integer
-              V:
-                type: integer
-  "/fyi/deliveryoptions":
-    get:
-      summary: Get delivery options
-      tags:
-      - FYI
-      description: 'options for sending fyis to email and other devices
-
-'
-      responses:
-        '200':
-          description: An object
-          schema:
-            type: object
-            properties:
-              M:
-                type: integer
-                description: Email option is enabled or not 0-off, 1-on.
-              E:
-                type: array
-                items:
-                  type: object
-                  description: device
-                  properties:
-                    NM:
-                      type: string
-                      description: device name
-                    I:
-                      type: string
-                      description: device id
-                    UI:
-                      type: string
-                      description: unique device id
-                    A:
-                      type: string
-                      description: device is enabled or not 0-true, 1-false.
-  "/fyi/deliveryoptions/email":
-    put:
-      summary: enable/disable email option
-      tags:
-      - FYI
-      parameters:
-      - name: enabled
-        in: query
-        required: true
-        type: string
-        description: true/false
-      responses:
-        '200':
-          description: 200 means successful
-          schema:
-            type: object
-            properties:
-              T:
-                type: integer
-              V:
-                type: integer
-  "/fyi/deliveryoptions/device":
-    post:
-      summary: enable/disable device option
-      tags:
-      - FYI
-      parameters:
-      - in: body
-        name: body
-        description: device info
-        required: true
-        schema:
-          type: object
-          properties:
-            devicename:
-              type: string
-            deviceId:
-              type: string
-            uiName:
-              type: string
-            enabled:
-              type: boolean
-      responses:
-        '200':
-          description: 200 means successful
-          schema:
-            type: object
-            properties:
-              T:
-                type: integer
-              V:
-                type: integer
-  "/fyi/deliveryoptions/{deviceId}":
-    delete:
-      summary: delete a device
-      tags:
-      - FYI
-      parameters:
-      - name: deviceId
-        in: path
-        type: string
-        required: true
-        description: device ID
-      responses:
-        '200':
-          description: 200 means successful
-          schema:
-            type: object
-  "/fyi/notifications":
-    get:
-      summary: Get a list of notifications
-      tags:
-      - FYI
-      parameters:
-      - name: exclude
-        in: query
-        type: string
-        description: if set, don't set include
-      - name: include
-        in: query
-        type: string
-        description: if set, don't set exclude
-      - name: max
-        in: query
-        required: true
-        type: string
-        description: max number of fyis in response
-      responses:
-        '200':
-          description: An array
-          schema:
-            "$ref": "#/definitions/notifications"
-  "/fyi/notifications/more":
-    get:
-      summary: Get more notifications based on a certain one
-      tags:
-      - FYI
-      parameters:
-      - name: id
-        in: query
-        required: true
-        type: string
-        description: id of last notification in the list
-      responses:
-        '200':
-          description: An array
-          schema:
-            "$ref": "#/definitions/notifications"
-  "/fyi/notifications/{notificationId}":
-    put:
-      summary: Get a list of notifications
-      tags:
-      - FYI
-      parameters:
-      - name: notificationId
-        in: path
-        required: true
-        type: string
-        description: mark a notification read
-      responses:
-        '200':
-          description: when 200 receives, it means successful
-          schema:
-            type: object
+                      exchange:
+                        type: string
+        '400':
+          description: Unsuccessfull response
+        '401':
+          description: Unsuccessfull response
+        '403':
+          description: Unsuccessfull response
+        '408':
+          description: Unsuccessfull response
 definitions:
-  authStatus:
-    type: object
-    properties:
-      authenticated:
-        description: Brokerage session is authenticated
-        type: boolean
-      connected:
-        description: Connected to backend
-        type: boolean
-      competing:
-        description: Brokerage session is competing, e.g. user is logged in to IBKR
-          Mobile, WebTrader, TWS or other trading platforms.
-        type: boolean
-      fail:
-        description: Authentication failed, why.
-        type: string
-      message:
-        description: System messages that may affect trading
-        type: string
-      prompts:
-        type: array
-        description: Prompt messages that may affect trading or the account
-        items:
-          type: string
-  contract:
-    description: Contains all details of the contract, including rules you can use
-      when placing orders
-    type: object
-    properties:
-      r_t_h:
-        type: boolean
-        description: true means you can trade outside RTH(regular trading hours)
-      con_id:
-        type: string
-        description: same as that in request
-      company_name:
-        type: string
-      exchange:
-        type: string
-      local_symbol:
-        type: string
-        description: for exmple FB
-      instrument_type:
-        type: string
-        description: for example STK
-      currency:
-        type: string
-      category:
-        type: string
-      industry:
-        type: string
-      rules:
-        type: object
-        properties:
-          orderTypes:
-            type: array
-            items:
-              type: string
-              description: store available order types for this contract
-          orderTypesOutside:
-            type: array
-            items:
-              type: string
-              description: store available order types for this contract outside regular
-                hours
-          defaultSize:
-            type: number
-            description: default quantity you can use to place an order
-          sizeIncrement:
-            type: number
-          tifTypes:
-            type: array
-            items:
-              type: string
-              description: store available time-in-force types
-          limitPrice:
-            type: number
-            description: default limit price you can use to prefill your order
-          stopprice:
-            type: number
-            description: default stop price you can use to prefill your order
-          preview:
-            type: boolean
-            description: if you can preview the order or not with the whatif end-point
-          displaySize:
-            type: string
-          increment:
-            type: string
-  history-data:
-    type: object
-    properties:
-      start:
-        description: start date time
-        type: string
-      mdAvailability:
-        type: string
-        description: |
-          Market Data Availability. The field may contain two chars. The first char is the primary code: R = Realtime, D = Delayed,
-          Z = Frozen, Y = Frozen Delayed. The second char is the secondary code: P = Snapshot Available, p = Consolidated.
-      barLength:
-        type: integer
-      delay:
-        type: integer
-      high:
-        type: string
-        description: price/volume/...
-      low:
-        type: string
-        description: price/volume/...
-      symbol:
-        type: string
-      text:
-        type: string
-      tickNum:
-        type: string
-      timePeriod:
-        type: string
-      data:
-        type: array
-        items:
-          type: object
-          properties:
-            o:
-              type: number
-              description: open price
-            c:
-              type: number
-              description: close price
-            h:
-              type: number
-              description: high price
-            l:
-              type: number
-              description: low price
-            v:
-              type: number
-              description: volume
-            t:
-              type: number
-              description: unix time stamp
-      points:
-        type: number
-        description: total number of points
-      travelTime:
-        type: number
-  trade:
-    type: object
-    properties:
-      execution_id:
-        type: string
-      symbol:
-        type: string
-      side:
-        type: string
-      order_description:
-        type: string
-      trade_time:
-        type: string
-      trade_time_r:
-        type: number
-      size:
-        type: string
-      price:
-        type: string
-      submitter:
-        type: string
-      exchange:
-        type: string
-      comission:
-        type: number
-      net_amount:
-        type: number
-      account:
-        type: string
-      company_name:
-        type: string
-      contract_description_1:
-        type: string
-      sec_type:
-        type: string
-      conidex:
-        type: string
-      position:
-        type: string
-      clearing_id:
-        type: string
-      clearing_name:
-        type: string
-  modify-order:
-    type: object
-    properties:
-      acctId:
-        type: string
-      conid:
-        type: integer
-      orderId:
-        type: integer
-        description: customer orderid
-      orderType:
-        type: string
-        description: for example LMT
-      outsideRTH:
-        type: boolean
-      price:
-        type: number
-      auxPrice:
-        type: number
-      side:
-        type: string
-        description: SELL or BUY
-      listingExchange:
-        type: string
-        description: optional, not required
-      ticker:
-        type: string
-      tif:
-        type: string
-        description: for example DAY
-      quantity:
-        type: number
-        description: usually integer, for some special cases can be float numbers
-  order-request:
-    type: object
-    properties:
-      acctId:
-        description: |
-          acctId is optional. It should be one of the accounts returned by
-          /iserver/accounts. If not passed, the first one in the list is selected.
-        type: string
-      conid:
-        description: |
-          conid is the identifier of the security you want to trade, you can find the
-          conid with /iserver/secdef/search.
-        type: integer
-      secType:
-        type: string
-        description: conid:type for example 265598:STK
-      cOID:
-        description: |
-          Customer Order ID. An arbitraty string that can be used to identify the order, e.g "my-fb-order". The
-          value must be unique for a 24h span. Please do not set this value for child orders when placing a bracket order.
-        type: string
-      parentId:
-        description: 'When placing bracket orders, the child parentId must be equal
-          to the cOId (customer order id) of the parent.
-
-'
-        type: string
-      orderType:
-        description: 'orderType can be one of MKT (Market), LMT (Limit), STP (Stop)
-          or STP_LIMIT (stop limit)
-
-'
-        type: string
-      listingExchange:
-        description: |
-          listingExchange is optional. By default we use "SMART" routing. Possible values are available via this end
-          point: /v1/portal/iserver/contract/{{conid}}/info, see valid_exchange: e.g: SMART,AMEX,NYSE,
-          CBOE,ISE,CHX,ARCA,ISLAND,DRCTEDGE,BEX,BATS,EDGEA,CSFBALGO,JE FFALGO,BYX,IEX,FOXRIVER,TPLUS1,NYSENAT,PSX
-        type: string
-      outsideRTH:
-        description: 'set to true if the order can be executed outside regular trading
-          hours.
-
-'
-        type: boolean
-      price:
-        description: 'optional if order is MKT, for LMT, this is the limit price.
-          For STP this is the stop price.
-
-'
-        type: number
-      side:
-        type: string
-        description: SELL or BUY
-      ticker:
-        description: ''
-        type: string
-      tif:
-        description: 'GTC (Good Till Cancel) or DAY. DAY orders are automatically
-          cancelled at the end of the Day or Trading hours.
-
-'
-        type: string
-      referrer:
-        description: for example QuickTrade
-        type: string
-      quantity:
-        description: usually integer, for some special cases can be float numbers
-        type: number
-      useAdaptive:
-        description: |
-          If true, the system will use the Adaptive Algo to submit the order
-          https://www.interactivebrokers.com/en/index.php?f=19091
-        type: boolean
+  timeInForce:
+    type: number
+    enum: [0, 1, 2, 3, 7]
+    description: |
+      Defines order's active lifetime.
+      Day = '0'
+      GTC (Good till Cancel) = '1'
+      IOC (Immediate or Cancel) = '3'
+      Open = '2'
+      Close = '7'
   order:
-    description: contains all the order related info
     type: object
     properties:
-      acct:
+      CustomerOrderId:
         type: string
-        description: account id
-      conid:
-        type: integer
-      orderDesc:
+        description: The order ID assigned by the customer.
+      Ticker:
         type: string
-      description1:
+        description: The symbol that identifies the trading product
+      ListingExchange:
         type: string
-      ticker:
+        description: >-
+          The exchange on which the trading product is listed (only for
+          InstrumentType=STK)
+      Currency:
         type: string
-        description: for exmple FB
-      secType:
+        description: >-
+          The currency in which the FX pair trades (only for
+          InstrumentType=CASH)
+      InstrumentType:
         type: string
-        description: for example STK
-      listingExchange:
-        type: string
-        description: for example NASDAQ.NMS
-      remainingQuantity:
-        type: string
-      filledQuantity:
-        type: string
-      companyName:
-        type: string
-      status:
-        type: string
-        description: "PendingSubmit - Indicates the order was sent, but confirmation
-          has not been received that it has been received by the destination. \n                Occurs
-          most commonly if an exchange is closed.\nPendingCancel - Indicates that
-          a request has been sent to cancel an order but confirmation has not been
-          received of its cancellation. PreSubmitted - Indicates that a simulated
-          order type has been accepted by the IBKR system and that this order has
-          yet to be elected. \n               The order is held in the IBKR system
-          until the election criteria are met. At that time the order is transmitted
-          to the order destination as specified. \nSubmitted - Indicates that the
-          order has been accepted at the order destination and is working. Cancelled
-          - Indicates that the balance of the order has been confirmed cancelled by
-          the IB system. \n            This could occur unexpectedly when IB or the
-          destination has rejected the order.  \nFilled - Indicates that the order
-          has been completely filled.  Inactive - Indicates the order is not working,
-          for instance if the order was invalid and triggered an error message,\n
-          \          or if the order was to short a security and shares have not yet
-          been located. \n"
-      origOrderType:
-        type: string
-        description: for example Limit
-      side:
-        type: string
-        description: BUY or SELL
-      price:
+        description: The instrument type of the contract
+      ContractId:
         type: number
-      bgColor:
-        type: string
-        description: back-ground color
-      fgColor:
-        type: string
-      orderId:
-        type: integer
-      parentId:
-        description: Only exists in child order of bracket
-        type: string
-  scanner-params:
-    type: object
-    properties:
-      instrument:
-        type: string
-        description: for example-STK
-      type:
-        type: string
-        description: for example-TOP_PERC_GAIN
-      filter:
-        type: array
-        items:
-          type: object
-          properties:
-            code:
-              type: string
-            value:
-              type: number
-      location:
-        type: string
-      size:
-        type: string
-  set-account:
-    type: object
-    properties:
-      acctId:
-        type: string
-        description: Account ID
-  position:
-    type: array
-    items:
-      type: object
-      description: Account Information
-      properties:
-        acctId:
-          type: string
-        conid:
-          type: integer
-        contractDesc:
-          type: string
-        assetClass:
-          type: string
-        position:
-          type: number
-        mktPrice:
-          type: number
-        mktValue:
-          type: number
-        currency:
-          type: string
-        avgCost:
-          type: number
-        avgPrice:
-          type: number
-        realizedPnl:
-          type: number
-        unrealizedPnl:
-          type: number
-        exchs:
-          type: string
-        expiry:
-          type: string
-        putOrCall:
-          type: string
-        multiplier:
-          type: number
-        strike:
-          type: number
-        exerciseStyle:
-          type: string
-        undConid:
-          type: integer
-        conExchMap:
-          type: array
-          items:
-            type: string
-        baseMktValue:
-          type: number
-        baseMktPrice:
-          type: number
-        baseAvgCost:
-          type: number
-        baseAvgPrice:
-          type: number
-        baseRealizedPnl:
-          type: number
-        baseUnrealizedPnl:
-          type: number
-        name:
-          type: string
-        lastTradingDay:
-          type: string
-        group:
-          type: string
-        sector:
-          type: string
-        sectorGroup:
-          type: string
-        ticker:
-          type: string
-        undComp:
-          type: string
-        undSym:
-          type: string
-        fullName:
-          type: string
-        pageSize:
-          type: integer
-        model:
-          type: string
-  allocation:
-    type: array
-    items:
-      type: object
-      description: allocation
-      properties:
-        assetClass:
-          type: object
-          description: portfolio allocation by asset class
-          properties:
-            long:
-              type: object
-              description: long positions allocation
-              properties:
-                STK:
-                  type: number
-                OPT:
-                  type: number
-                FUT:
-                  type: number
-                WAR:
-                  type: number
-                BOND:
-                  type: number
-                CASH:
-                  type: number
-            short:
-              type: object
-              description: short positions allocation
-              properties:
-                STK:
-                  type: number
-                OPT:
-                  type: number
-                FUT:
-                  type: number
-                WAR:
-                  type: number
-                BOND:
-                  type: number
-                CASH:
-                  type: number
-        sector:
-          type: object
-          description: portfolio allocation by sector
-          properties:
-            long:
-              type: object
-              description: long positions allocation
-              properties:
-                Others:
-                  type: number
-                Utilities:
-                  type: number
-                Energy:
-                  type: number
-                Technology:
-                  type: number
-                Financial:
-                  type: number
-                Communications:
-                  type: number
-            short:
-              type: object
-              description: short positions allocation
-              properties:
-                Industrial:
-                  type: number
-                Consumer:
-                  type: number
-                Diversified:
-                  type: number
-        group:
-          type: object
-          description: portfolio allocation by group
-          properties:
-            long:
-              type: object
-              description: long positions allocation
-              properties:
-                Computers:
-                  type: number
-                Semiconductors:
-                  type: number
-                Others:
-                  type: number
-                Chemicals:
-                  type: number
-                Apparel:
-                  type: number
-                Communications:
-                  type: number
-            short:
-              type: object
-              description: short positions allocation
-              properties:
-                Banks:
-                  type: number
-                Airlines:
-                  type: number
-                Internet:
-                  type: number
-  accounts:
-    type: array
-    items:
-      "$ref": "#/definitions/account"
-  account:
-    type: object
-    description: account information
-    properties:
-      id:
-        type: string
-      accountId:
-        type: string
-      accountVan:
-        type: string
-      accountTitle:
-        type: string
-      displayName:
-        type: string
-      accountAlias:
-        type: string
-      accountStatus:
+        description: >-
+          The internal IB identifier for the trading product specified
+          as an integer (can be obtained in response to /secdef request)
+      Quantity:
         type: number
-      currency:
-        type: string
-      type:
-        type: string
-      tradingType:
-        type: string
-      faclient:
+        description: The number of units in the order; contracts or shares
+      Price:
+        type: number
+        description: The order price
+      Order Type:
+        $ref: '#/definitions/orderType'
+      Aux Price:
+        type: number
+        description: Required Price to support Stop and Stop Limit orders
+      Time in Force:
+        $ref: '#/definitions/timeInForce'
+      Outside RTH:
+        type: number
+        description: >-
+          Indicates if order is active outside regular trading hours,
+          where defined. 0 = no (default), 1 = yes
+      Side:
+        type: number
+        description: 'Buy = ''1'', Sell = ''2'''
+        enum: [1, 2]
+      OrderRestrictions:
+        type: number
+        description: |
+          MultiValueString representing the restrictions associated with
+          an order. If more than one restriction is applicable to an
+          order, this field can contain multiple instructions separated
+          by space. 
+          '1' Program Trade
+          '2' Index Arbitrage 
+          '3' Non-Index Arbitrage
+      GermanHftAlgo:
         type: boolean
-      parent:
+        description: >-
+          By setting this bool to false the customer attests that the
+          order is not subject to German HFT Act, was not generated
+          using any automated algorithm, and no algorithm determined or
+          changed financial instrument, side, quantity, order type,
+          limit or other price, trading venue or timing of this order.
+          Currently we cannot accept orders where this flag is set to
+          true. Such orders will be rejected.
+      Mifid2DecisionMaker:
         type: string
-      desc:
+        description: >-
+          This field permits specification of the user's preregistered
+          (via account management) MiFID II short code for decision
+          makers.
+      Mifid2Algo:
         type: string
-      covestor:
-        type: boolean
-      master:
-        type: object
-        properties:
-          title:
-            type: string
-          officialTitle:
-            type: string
-  summary:
-    type: object
-    description: account information
-    properties:
-      total:
-        type: object
-        properties:
-          chg:
-            type: string
-            description: total change amount
-          rtn:
-            type: string
-            description: change percent
-          incompleteData:
-            type: boolean
-            description: set to true if any external account data is not available
-              for starting or ending date, resulting in potentially unusual total
-              values.
-          endVal:
-            type: string
-          startVal:
-            type: string
-      startDate:
+        description: >-
+          This field permits specification of the user's preregistered
+          (via account management) MiFID II short code for algos that
+          are responsible for investment decisions
+      Mifid2ExecutionTrader:
         type: string
-        description: date format-- yyyy-MM-dd
-      excludedAccounts:
-        type: array
-        items:
-          type: object
-          properties:
-            lastUpdateAttempt:
-              type: string
-            fiName:
-              type: string
-            acctTitle:
-              type: string
-            acctNumAtFI:
-              type: string
-            acctId:
-              type: string
-            lastUpdate:
-              type: string
-            harvestCode:
-              type: integer
-            lastUpdateStatusCode:
-              type: string
-            rc:
-              type: integer
-      lastSuccessfulUpdate:
+        description: >-
+          This field permits specification of the user's preregistered
+          (via account management) MiFID II person responsible for
+          handling/routing of the order
+      Mifid2ExecutionAlgo:
         type: string
-      accountSummaries:
-        type: array
-        items:
-          type: object
-          properties:
-            chg:
-              type: string
-            hasAccounts:
-              type: string
-            accountTypeName:
-              type: string
-            rtn:
-              type: string
-            endVal:
-              type: string
-            accountTypeCode:
-              type: string
-            startVal:
-              type: string
-      endDate:
-        type: string
-      hasExternalAccounts:
-        type: boolean
-        description: indicator of user having configured any external accounts
-      rc:
-        type: integer
-      currency:
-        type: string
-      userId:
-        type: string
-      pm:
-        type: string
-      view:
-        type: string
-      balanceByDate:
-        type: object
-        properties:
-          series:
-            type: array
-            items:
-              type: object
-              properties:
-                id:
-                  type: string
-                groupId:
-                  type: string
-                name:
-                  type: string
-                date:
-                  type: array
-                  items:
-                    type: array
-                    items:
-                      type: number
-  ledger:
+        description: >-
+          This field permits specification of the user's preregistered
+          (via account management) MiFID II short code for algos that
+          are responsible for handling/routing of the order.
+  orderType:
+    type: number
+    enum: [1, 2, 3, 4]
+    description: |
+      Market = '1'
+      Limit = '2'
+      Stop = '3'
+      StopLimit = '4'
+  orderState:
+    description: An object containing all the properties defining an order
     type: object
     properties:
-      commoditymarketvalue:
+      CustomerOrderId:
         type: number
-      futuremarketvalue:
+      ContractId:
         type: number
-      settledcash:
-        type: number
-      exchangerate:
-        type: number
-      sessionid:
-        type: integer
-      cashbalance:
-        type: number
-      corporatebondsmarketvalue:
-        type: number
-      warrantsmarketvalue:
-        type: number
-      netliquidationvalue:
-        type: number
-      interest:
-        type: number
-      unrealizedpnl:
-        type: number
-      stockmarketvalue:
-        type: number
-      moneyfunds:
-        type: number
-      currency:
+      Ticker:
         type: string
-      realizedpnl:
+      ListingExchange:
+        type: string
+      RemainingQuantity:
         type: number
-      funds:
+      FilledQuantity:
         type: number
-      acctcode:
+      OrderType:
+        $ref: '#/definitions/orderType'
+      TimeInForce:
+        $ref: '#/definitions/timeInForce'
+      OutsideRTH:
         type: string
-      issueroptionsmarketvalue:
+      Side:
+        type: string
+        enum: [1, 2]
+      Price:
         type: number
-      key:
+      Status:
+        $ref: '#/definitions/orderStatus'
+      Warning:
         type: string
-      timestamp:
-        type: integer
-      severity:
-        type: integer
-  calendar_request:
-    type: object
-    properties:
-      date:
-        type: object
-        properties:
-          start:
-            type: string
-            description: start date of a period. for example 20180808-0400
-          end:
-            type: string
-            description: end date of a period. for example 20180808-0400
-      filters:
-        type: object
-        properties:
-          recently_held:
-            type: string
-            description: value can be 'true' or 'false'.
-          corporate_earnings:
-            type: string
-            description: value can be 'true' or 'false'.
-          DivExDates:
-            type: string
-            description: value can be 'true' or 'false'.
-          ipo:
-            type: string
-            description: value can be 'true' or 'false'.
-          splits:
-            type: string
-            description: value can be 'true' or 'false'.
-          corporate_events:
-            type: string
-            description: value can be 'true' or 'false'.
-          economic_events:
-            type: string
-            description: value can be 'true' or 'false'.
-          option_show_monthly:
-            type: string
-            description: value can be 'true' or 'false'.
-          option_show_weekly:
-            type: string
-            description: value can be 'true' or 'false'.
-          country:
-            type: string
-            description: default is 'All'.
-          limit:
-            type: string
-            description: default is '250'.
-          limit_region:
-            type: string
-            description: default is '50'.
-  events:
-    type: array
-    description: events
-    items:
-      type: object
-      properties:
-        index_date_type:
-          type: string
-        event_type:
-          type: string
-        data:
-          type: object
-          description: will be different for different event types
-        conids:
-          type: array
-          items:
-            type: string
-            description: conid in string
-        index_date:
-          type: string
-          description: for exmple 20180817T040000+0000
-        source:
-          type: string
-          description: for example RSE
-        event_key:
-          type: string
-          description: for example 11662135
-        tooltips:
-          type: object
-        status:
-          type: string
-  performance:
-    type: object
-    properties:
-      id:
+      TransactionTime:
         type: string
-      cps:
-        type: object
-        description: Cumulative performance data
-        properties:
-          dates:
-            type: array
-            description: array of dates, the length should be same as the length of
-              returns inside data.
-            items:
-              type: string
-              description: format-- yyyyMMdd
-          freq:
-            type: string
-            description: D means Day
-          data:
-            type: array
-            items:
-              type: object
-              properties:
-                id:
-                  type: string
-                idType:
-                  type: string
-                  description: for example-- acctid
-                start:
-                  type: string
-                  description: start date-- yyyyMMdd
-                baseCurrency:
-                  type: string
-                returns:
-                  type: array
-                  description: each value stands for price change percent of corresponding
-                    date in dates array
-                  items:
-                    type: number
-                end:
-                  type: string
-                  description: end date-- yyyyMMdd
-      tpps:
-        type: object
-        description: Time period performance data
-        properties:
-          dates:
-            type: array
-            description: array of dates, the length should be same as the length of
-              returns inside data.
-            items:
-              type: string
-              description: format-- yyyyMMdd
-          freq:
-            type: string
-            description: M means Month
-          data:
-            type: array
-            items:
-              type: object
-              properties:
-                id:
-                  type: string
-                idType:
-                  type: string
-                  description: for example-- acctid
-                start:
-                  type: string
-                  description: start date-- yyyyMMdd
-                baseCurrency:
-                  type: string
-                returns:
-                  type: array
-                  description: each value stands for price change percent of corresponding
-                    date in dates array
-                  items:
-                    type: number
-                end:
-                  type: string
-                  description: end date-- yyyyMMdd
-      nav:
-        type: object
-        description: Net asset value data for the account or consolidated accounts.
-          NAV data is not applicable to benchmarks.
-        properties:
-          dates:
-            type: array
-            description: array of dates, the length should be same as the length of
-              returns inside data.
-            items:
-              type: string
-              description: format--yyyyMMdd
-          freq:
-            type: string
-            description: D means Day
-          data:
-            type: array
-            items:
-              type: object
-              properties:
-                id:
-                  type: string
-                idType:
-                  type: string
-                  description: for example-- acctid
-                start:
-                  type: string
-                  description: start date-- yyyyMMdd
-                baseCurrency:
-                  type: string
-                returns:
-                  type: array
-                  description: each value stands for price change percent of corresponding
-                    date in dates array
-                  items:
-                    type: number
-                end:
-                  type: string
-                  description: end date-- yyyyMMdd
-      pm:
-        type: string
-      included:
-        type: array
-        items:
-          type: string
-          description: account id
-      currencyType:
-        type: string
-      rc:
-        type: integer
-  secdef:
-    type: array
-    items:
-      type: object
-      description: security definition information
-      properties:
-        conid:
-          type: integer
-        name:
-          type: string
-        assetClass:
-          type: string
-        expiry:
-          type: string
-        lastTradingDay:
-          type: string
-        group:
-          type: string
-        putOrCall:
-          type: string
-        sector:
-          type: string
-        sectorGroup:
-          type: string
-        strike:
-          type: number
-        ticker:
-          type: string
-        undConid:
-          type: integer
-        fullName:
-          type: string
-        pageSize:
-          type: integer
-  futures:
-    type: array
-    items:
-      type: object
-      description: future contract information
-      properties:
-        symbol:
-          type: string
-        conid:
-          type: integer
-          description: conid of the future contract
-        underlyingConid:
-          type: integer
-        expirationDate:
-          type: string
-        ltd:
-          type: string
-          description: last trading day
-  notifications:
-    type: array
-    items:
-      type: object
-      description: notification
-      properties:
-        D:
-          type: string
-          description: notification date
-        ID:
-          type: string
-          description: unique way to reference this notification
-        FC:
-          type: string
-          description: FYI code, we can use it to find whether the disclaimer is accepted
-            or not in settings
-        MD:
-          type: string
-          description: content of notification
-        MS:
-          type: string
-          description: title of notification
-        R:
-          type: string
-          description: 0-unread, 1-read
+  orderStatus:
+    type: string
+    enum: ['-1', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E']
+    description: |
+      Status of the order
+      InvalidOrderStatus = '-1'
+      New = '0'
+      PartiallyFilled = '1'
+      Filled = '2'
+      DoneForTheDay = '3'
+      Canceled = '4'
+      Replaced = '5'
+      PendingCancelReplace = '6'
+      Stopped = '7'
+      Rejected = '8'
+      Suspended = '9'
+      PendingNew = 'A'
+      Calculated = 'B'
+      Expired = 'C'
+      AcceptedForBidding = 'D'
+      PendingReplace = 'E'
+          schema:
+            type: object
+            properties:
+              CustomerOrderId:
+                type: string
+                description: The order ID assigned by the customer.
+              Ticker:
+                type: string
+                description: The symbol that identifies the trading product
+              ListingExchange:
+                type: string
+                description: >-
+                  The exchange on which the trading product is listed (only for
+                  InstrumentType=STK)
+              Currency:
+                type: string
+                description: >-
+                  The currency in which the FX pair trades (only for
+                  InstrumentType=CASH)
+              InstrumentType:
+                type: string
+                description: The instrument type of the contract
+              ContractId:
+                type: number
+                description: >-
+                  The internal IB identifier for the trading product specified
+                  as an integer (can be obtained in response to /secdef request)
+              Quantity:
+                type: number
+                description: The number of units in the order; contracts or shares
+              Price:
+                type: number
+                description: The order price
+              Order Type:
+                $ref: '#/definitions/orderType'
+              Aux Price:
+                type: number
+                description: Required Price to support Stop and Stop Limit orders
+              Time in Force:
+                $ref: '#/definitions/timeInForce'
+              Outside RTH:
+                type: number
+                description: >-
+                  Indicates if order is active outside regular trading hours,
+                  where defined. 0 = no (default), 1 = yes
+              Side:
+                type: number
+                description: 'Buy = ''1'', Sell = ''2'''
+                enum: [1, 2]
+              OrderRestrictions:
+                type: number
+                description: |
+                  MultiValueString representing the restrictions associated with
+                  an order. If more than one restriction is applicable to an
+                  order, this field can contain multiple instructions separated
+                  by space. 
+                  '1' Program Trade
+                  '2' Index Arbitrage 
+                  '3' Non-Index Arbitrage
+              GermanHftAlgo:
+                type: boolean
+                description: >-
+                  By setting this bool to false the customer attests that the
+                  order is not subject to German HFT Act, was not generated
+                  using any automated algorithm, and no algorithm determined or
+                  changed financial instrument, side, quantity, order type,
+                  limit or other price, trading venue or timing of this order.
+                  Currently we cannot accept orders where this flag is set to
+                  true. Such orders will be rejected.
+              Mifid2DecisionMaker:
+                type: string
+                description: >-
+                  This field permits specification of the user's preregistered
+                  (via account management) MiFID II short code for decision
+                  makers.
+              Mifid2Algo:
+                type: string
+                description: >-
+                  This field permits specification of the user's preregistered
+                  (via account management) MiFID II short code for algos that
+                  are responsible for investment decisions
+              Mifid2ExecutionTrader:
+                type: string
+                description: >-
+                  This field permits specification of the user's preregistered
+                  (via account management) MiFID II person responsible for
+                  handling/routing of the order
+              Mifid2ExecutionAlgo:
+                type: string
+                description: >-
+                  This field permits specification of the user's preregistered
+                  (via account management) MiFID II short code for algos that
+                  are responsible for handling/routing of the order.

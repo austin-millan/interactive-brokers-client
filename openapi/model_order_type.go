@@ -8,8 +8,13 @@
  */
 
 package openapi
-// InlineResponse2003 struct for InlineResponse2003
-type InlineResponse2003 struct {
-	// Unique account id
-	Accounts []string `json:"accounts,omitempty"`
-}
+// OrderType Market = '1' Limit = '2' Stop = '3' StopLimit = '4' 
+type OrderType float32
+
+// List of orderType
+const (
+	_1 OrderType = 1
+	_2 OrderType = 2
+	_3 OrderType = 3
+	_4 OrderType = 4
+)

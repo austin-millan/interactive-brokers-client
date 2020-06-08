@@ -1,12 +1,10 @@
-# InlineResponse20011
+# MarketdataSnapshotClosing
 
 ## Properties
 
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
-**ConId** | **float32** |  | [optional] 
-**Complete** | **bool** |  | [optional] 
-**Mapping** | [**[]MarketdataExchangeComponentsMapping**](_marketdata_exchange_components_mapping.md) |  | [optional] 
+**Price** | **float32** |  | [optional] 
 
 [[Back to Model list]](../README.md#documentation-for-models) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to README]](../README.md)
 

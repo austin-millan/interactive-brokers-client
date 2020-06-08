@@ -4,7 +4,11 @@
 
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
-**Orders** | [**[]OrderRequest**](order-request.md) | Notes for bracket orders: 1. Children orders will not have its own \&quot;cOID\&quot;, so please donot pass \&quot;cOID\&quot; parameter in child order.Instead, they will have a \&quot;parentId\&quot; which must be equal to \&quot;cOID\&quot; of parent. 2. When you cancel a parent order, it will cancel all bracket orders, when you cancel one child order, it will also cancel its sibling order.  | [optional] 
+**Type** | **string** | The instrument type of the contract (CASH). | [optional] 
+**Symbol** | **string** | The symbol that identifies the trading product. | [optional] 
+**Currency** | **string** | The currency in which the given pair trades. | [optional] 
+**Exchange** | **string** | The exchange on which the trading product is listed (required for type&#x3D;STK). | [optional] 
+**Conid** | **float32** | The internal IB identifier for the trading product specified as an integer. | [optional] 
 
 [[Back to Model list]](../README.md#documentation-for-models) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to README]](../README.md)
 

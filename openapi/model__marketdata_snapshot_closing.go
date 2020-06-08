@@ -8,8 +8,7 @@
  */
 
 package openapi
-// InlineResponse2003 struct for InlineResponse2003
-type InlineResponse2003 struct {
-	// Unique account id
-	Accounts []string `json:"accounts,omitempty"`
+// MarketdataSnapshotClosing struct for MarketdataSnapshotClosing
+type MarketdataSnapshotClosing struct {
+	Price float32 `json:"price,omitempty"`
 }
