@@ -11,7 +11,6 @@ Name | Type | Description | Notes
 **LocalSymbol** | **string** | for exmple FB | [optional] 
 **InstrumentType** | **string** | for example STK | [optional] 
 **Currency** | **string** |  | [optional] 
-**CompanyName** | **string** |  | [optional] 
 **Category** | **string** |  | [optional] 
 **Industry** | **string** |  | [optional] 
 **Rules** | [**ContractRules**](contract_rules.md) |  | [optional] 

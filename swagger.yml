@@ -1655,7 +1655,6 @@ definitions:
       local_symbol: {type: string, description: for exmple FB}
       instrument_type: {type: string, description: for example STK}
       currency: {type: string}
-      companyName: {type: string}
       category: {type: string}
       industry: {type: string}
       rules:

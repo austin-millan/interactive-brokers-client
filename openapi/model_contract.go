@@ -21,7 +21,6 @@ type Contract struct {
 	// for example STK
 	InstrumentType string `json:"instrument_type,omitempty"`
 	Currency string `json:"currency,omitempty"`
-	CompanyName string `json:"companyName,omitempty"`
 	Category string `json:"category,omitempty"`
 	Industry string `json:"industry,omitempty"`
 	Rules ContractRules `json:"rules,omitempty"`
