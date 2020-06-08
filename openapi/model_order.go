@@ -36,7 +36,7 @@ type Order struct {
 	FgColor string `json:"fgColor,omitempty"`
 	OrderId int32 `json:"orderId,omitempty"`
 	// Only exists in child order of bracket
-	ParentId int32 `json:"parentId,omitempty"`
+	ParentId string `json:"parentId,omitempty"`
 	// User defined string used to identify the order. Value is set using \"cOID\" field while placing an order.
 	OrderRef string `json:"order_ref,omitempty"`
 }

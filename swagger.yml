@@ -1867,7 +1867,7 @@ definitions:
       bgColor: {type: string, description: back-ground color}
       fgColor: {type: string}
       orderId: {type: integer}
-      parentId: {description: Only exists in child order of bracket, type: integer}
+      parentId: {description: Only exists in child order of bracket, type: string}
       order_ref: {description: User defined string used to identify the order. Value is set using "cOID" field while placing an order.,
         type: string}
   set-account:
