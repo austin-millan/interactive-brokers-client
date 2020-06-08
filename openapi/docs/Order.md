@@ -21,7 +21,7 @@ Name | Type | Description | Notes
 **BgColor** | **string** | back-ground color | [optional] 
 **FgColor** | **string** |  | [optional] 
 **OrderId** | **int32** |  | [optional] 
-**ParentId** | **int32** | Only exists in child order of bracket | [optional] 
+**ParentId** | **string** | Only exists in child order of bracket | [optional] 
 
 [[Back to Model list]](../README.md#documentation-for-models) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to README]](../README.md)
 

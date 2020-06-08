@@ -2197,7 +2197,7 @@ definitions:
         type: integer
       parentId:
         description: Only exists in child order of bracket
-        type: integer
+        type: string
   scanner-params:
     type: object
     properties:
