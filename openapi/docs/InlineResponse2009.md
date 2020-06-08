@@ -4,12 +4,7 @@
 
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
-**ContractId** | **float32** |  | [optional] 
-**Ticker** | **string** |  | [optional] 
-**SecurityType** | **string** |  | [optional] 
-**Exchange** | **string** |  | [optional] 
-**CompanyName** | **string** |  | [optional] 
-**Currency** | **string** |  | [optional] 
+**ACCTID** | **[]map[string]interface{}** |  | [optional] 
 
 [[Back to Model list]](../README.md#documentation-for-models) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to README]](../README.md)
 
