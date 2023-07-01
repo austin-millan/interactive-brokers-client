@@ -1,2 +1,2 @@
-module gitlab.com/brokerage-api/interactive-brokers-openapi
+module gitlab.com/brokerage-api/interactive-brokers-client
 go 1.13
